@@ -2,7 +2,7 @@ name: "pd_ch's blog"
 description: "Pd.ch的个人技术博客"
 
 avatar: https://Pd-ch.github.io/images/avatar.jpg
-favicon: 
+favicon: https://Pd-ch.github.io/images/favicon.ico
 
 navigation:
   - name: 首页
