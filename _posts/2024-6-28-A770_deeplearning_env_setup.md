@@ -39,11 +39,11 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 ## step 1. 安装GPU驱动
 
-前往Intel GPU驱动网站<https://dgpu-docs.intel.com/driver/client/overview.html>，进行其中的3.1.1-3.1.5部分。树外内核部分无需理会。
+前往[Intel GPU驱动网站](https://dgpu-docs.intel.com/driver/client/overview.html)，进行其中的3.1.1-3.1.5部分。树外内核部分无需理会。
 
 ## step 2. 安装Intel®-oneAPI-Base-Toolkit
 
-前往Intel®-oneAPI-Base-Toolkit网站<https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&linux-install-type=apt>，使用apt进行安装。
+前往[Intel®-oneAPI-Base-Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&linux-install-type=apt)网站，使用apt进行安装。
 
 ## step 3. 安装Intel®-Extension-forPyTorch
 
@@ -64,12 +64,12 @@ python -c "import torch; import intel_extension_for_pytorch as ipex; print(torch
 ~~~
 最后成功识别到显卡即为安装成功。
 
-前往example进行愉快的玩耍吧<https://intel.github.io/intel-extension-for-pytorch/xpu/2.1.30+xpu/tutorials/examples.html>。
+前往[example](https://intel.github.io/intel-extension-for-pytorch/xpu/2.1.30+xpu/tutorials/examples.html)进行愉快的玩耍吧。
 
 # step 4. 安装xpu-smi
 
 最后一部分我也还在摸索。使用这个软件也是因为intel-gpu-tools查看不了显存使用情况。
 
-前往release页面下载安装即可<https://github.com/intel/xpumanager/releases/tag/V1.2.37>。
+前往[release](https://github.com/intel/xpumanager/releases/tag/V1.2.37)页面下载安装即可。
 
 使用说明在GitHub仓库的readme中。

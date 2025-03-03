@@ -101,6 +101,8 @@ fi
 ~~~
 在你的.zshrc或者.bashrc中添加**alias proxy="source ~/scripts/proxy.sh"**
 
+使用时只需要在终端输入proxy set;proxy unset;proxy test.
+
 至此,终端美化与代理设置就初步完成了
 
 ## Step 2. 安装NVIDIA驱动
