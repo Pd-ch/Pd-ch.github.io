@@ -13,31 +13,31 @@ author: Pd.ch
 
 ## 基础技术栈
 
-- **系统**：Debian  
-- **环境管理**：venv，pip  
-- **编程语言**：Python  
-- **AI 框架**：Pytorch  
-- **内容管理工具**：Git  
-- **集成开发环境**：VScode（本地环境）、Jupyterlab（远程环境）
+> - **系统**：Debian  
+> - **环境管理**：venv，pip  
+> - **编程语言**：Python  
+> - **AI 框架**：Pytorch  
+> - **内容管理工具**：Git  
+> - **集成开发环境**：VScode（本地环境）、Jupyterlab（远程环境）
 
 ## 进阶技术栈
 
-- **编程语言**：C++（g++、cling，标准=20）  
-- **AI 框架**：Pytorch（AMP，DDP并发）  
-- **环境管理**：Docker（开发容器与普通容器）  
-- **高性能计算**：jax  
-- **大数据**：duckdb（替代pandas）  
-- **构建工具**：xmake
+> - **编程语言**：C++（g++、cling，标准=20）  
+> - **AI 框架**：Pytorch（AMP，DDP并发）  
+> - **环境管理**：Docker（开发容器与普通容器）  
+> - **高性能计算**：jax  
+> - **大数据**：duckdb（替代pandas）  
+> - **构建工具**：xmake
 
 ## 自选方向技术栈
 
-- **数学建模**：MATLAB / Mworks（Julia）  
-- **大数据**：pyspark  
-- **科学计算**：计算方法，Julia  
-- **云计算**：K8s（rancher）、KVM、SDS（ceph）、SDN  
-- **边缘智能**：Tensort、onnx  
-- **高性能AI**：flax、optax  
-- **加速器**：FPGA（xilinx）、vitis、PCIe
+> - **数学建模**：MATLAB / Mworks（Julia）  
+> - **大数据**：pyspark  
+> - **科学计算**：计算方法，Julia  
+> - **云计算**：K8s（rancher）、KVM、SDS（ceph）、SDN  
+> - **边缘智能**：Tensort、onnx  
+> - **高性能AI**：flax、optax  
+> - **加速器**：FPGA（xilinx）、vitis、PCIe
 
 
 
