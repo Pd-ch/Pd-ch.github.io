@@ -45,7 +45,7 @@ author: Pd.ch
 
 ---
 
-### 以下推荐一些比较有用的教程
+### 以下推荐一些需要的数学知识
 
 - **[线性代数](https://www.zhihu.com/column/gs-linear-algebra)**：介绍了人工智能所需的线性代数基础
 - **[机器学习方法](https://www.zhihu.com/column/c_1334301979816820736)**：深入介绍机器学习中的一些基础方法
