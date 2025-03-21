@@ -33,7 +33,7 @@ author: Pd.ch
 > - **科学计算**：计算方法，Julia  
 > - **云计算**：K8s（rancher）、KVM、SDS（ceph）、SDN  
 > - **边缘智能**：Tensort、onnx  
-> - **高性能AI**：flax、optax  
+> - **高性能AI**：flax、optax、orbax
 > - **加速器**：FPGA（xilinx）、vitis、PCIe
 
 > **注：**  
