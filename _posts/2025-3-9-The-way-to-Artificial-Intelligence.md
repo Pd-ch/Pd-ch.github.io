@@ -2,7 +2,7 @@
 layout: post
 title: "人工智能基础"
 date:   2025-3-9
-tags: [AI, math, linear algebra]
+tags: [AI, math]
 comments: true
 author: Pd.ch
 ---
