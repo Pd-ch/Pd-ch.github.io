@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  
+  
+  
+  <entry>
+    <title>Intel A770 GPU深度学习环境搭建（Linux）</title>
+    <link href="/2024/06/28/A770_deeplearning_env_setup.html"/>
+    <url>/2024/06/28/A770_deeplearning_env_setup.html</url>
+    
+    <content type="html"><![CDATA[<h6id="说明windows下也可以进行环境搭建但是个人更偏爱debian">说明：Windows下也可以进行环境搭建，但是个人更偏爱Debian。</h6><h6id="updatepytorch在24年10月中旬发布了2.5版本添加了intel-gpu支持使用以下代码以启用."><strong>Update:pytorch在24年10月中旬发布了2.5版本,添加了IntelGPU支持,使用以下代码以启用.</strong></h6><p>这是pytorch官方的链接<ahref="https://pytorch.org/docs/main/notes/get_start_xpu.html"class="uri">https://pytorch.org/docs/main/notes/get_start_xpu.html</a></p><p>我们需要准备好GPU驱动,oneAPI.(不过现在仍然处于Preview版本)<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs awk">pip3 install torch torchvision torchaudio --index-url https:<span class="hljs-regexp">//</span>download.pytorch.org<span class="hljs-regexp">/whl/</span>test/xpu<br></code></pre></td></tr></table></figure></p><h6id="以下外国博客也可参考我仍然只推荐使用torch2.5preview"><strong>以下外国博客也可参考,我仍然只推荐使用torch2.5preview</strong></h6><p><ahref="https://christianjmills.com/posts/intel-pytorch-extension-tutorial/native-ubuntu/"class="uri">https://christianjmills.com/posts/intel-pytorch-extension-tutorial/native-ubuntu/</a></p><h3 id="目录">目录</h3><ul><li><a href="#step-0-准备工作">Step 0. 准备工作</a></li><li><a href="#step-1-安装GPU驱动">Step 1. 安装GPU驱动</a></li><li><a href="#step-2-安装Intel®-oneAPI-Base-Toolkit">Step 2.安装Intel®-oneAPI-Base-Toolkit</a></li><li><a href="#step-3-安装Intel®-Extension-for-PyTorch">Step 3.安装Intel®-Extension-forPyTorch</a></li><li><a href="#step-4-安装xpu-smi">Step 4. 安装xpu-smi</a></li></ul><h2 id="step-0.-准备工作">Step 0. 准备工作</h2><p>首先你需要有一台使用Intel GPU的电脑，本文针对Intel ArcA770（16GB）编写，系统环境为Debian sid。</p><p>关于Intel® Extension for PyTorch的安装可以参考官方示例<ahref="https://intel.github.io/intel-extension-for-pytorch/index.html#installation?platform=gpu&amp;version=v2.1.30%2bxpu&amp;os=linux%2fwsl2&amp;package=pip"class="uri">https://intel.github.io/intel-extension-for-pytorch/index.html#installation?platform=gpu&amp;version=v2.1.30%2bxpu&amp;os=linux%2fwsl2&amp;package=pip</a>。以下部分是我自己踩的一点坑。</p><h2 id="step-1.-安装gpu驱动">step 1. 安装GPU驱动</h2><p>前往<ahref="https://dgpu-docs.intel.com/driver/client/overview.html">IntelGPU驱动网站</a>，进行其中的3.1.1-3.1.5部分。树外内核部分无需理会。</p><h2 id="step-2.-安装intel-oneapi-base-toolkit">step 2.安装Intel®-oneAPI-Base-Toolkit</h2><p>前往<ahref="https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html?operatingsystem=linux&amp;linux-install-type=apt">Intel®-oneAPI-Base-Toolkit</a>网站，使用apt进行安装。</p><h2 id="step-3.-安装intel-extension-forpytorch">step 3.安装Intel®-Extension-forPyTorch</h2><p>我选择的是使用pip进行安装。你可以先使用conda创建一个虚拟环境，python版本推荐3.11。安装命令 <figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">python</span> -m pip install torch==<span class="hljs-number">2</span>.<span class="hljs-number">1</span>.<span class="hljs-number">0</span>.post2 torchvision==<span class="hljs-number">0</span>.<span class="hljs-number">16</span>.<span class="hljs-number">0</span>.post2 torchaudio==<span class="hljs-number">2</span>.<span class="hljs-number">1</span>.<span class="hljs-number">0</span>.post2 intel-extension-for-pytorch==<span class="hljs-number">2</span>.<span class="hljs-number">1</span>.<span class="hljs-number">30</span>.post0 oneccl_bind_pt==<span class="hljs-number">2</span>.<span class="hljs-number">1</span>.<span class="hljs-number">300</span>+xpu --extra-index-url https://pytorch-extension.intel.com/release-whl/stable/xpu/cn/<br></code></pre></td></tr></table></figure></p><p>完成后进行测试。</p><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs gradle"><span class="hljs-keyword">source</span> <span class="hljs-regexp">/opt/i</span>ntel<span class="hljs-regexp">/oneapi/</span>setvars.sh<br></code></pre></td></tr></table></figure><figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs scss">python -c &quot;import torch; import intel_extension_for_pytorch as ipex; <span class="hljs-built_in">print</span>(torch.__version__); <span class="hljs-built_in">print</span>(ipex.__version__); <span class="hljs-selector-attr">[print(f<span class="hljs-string">&#x27;[&#123;i&#125;]: &#123;torch.xpu.get_device_properties(i)&#125;&#x27;</span>) for i in range(torch.xpu.device_count())]</span>;&quot;<br></code></pre></td></tr></table></figure><p>最后成功识别到显卡即为安装成功。</p><p>前往<ahref="https://intel.github.io/intel-extension-for-pytorch/xpu/2.1.30+xpu/tutorials/examples.html">example</a>进行愉快的玩耍吧。</p><h1 id="step-4.-安装xpu-smi">step 4. 安装xpu-smi</h1><p>最后一部分我也还在摸索。使用这个软件也是因为intel-gpu-tools查看不了显存使用情况。</p><p>前往<ahref="https://github.com/intel/xpumanager/releases/tag/V1.2.37">release</a>页面下载安装即可。</p><p>使用说明在GitHub仓库的readme中。</p>]]></content>
+    
+    
+    
+    <tags>
+      
+      <tag>env setup</tag>
+      
+      <tag>intel GPU</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  
+</search>
