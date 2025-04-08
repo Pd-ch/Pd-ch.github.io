@@ -36,8 +36,8 @@ tags: [AI, math, VAE]
 
 我们假设数据是由某个随机过程生成的，涉及一个未观察到的连续随机变量 $ z $。该过程包括以下两个步骤：
 
-1.**从某个先验分布 $ p_{\boldsymbol{\theta}^*}(\mathbf{z}) $ 生成一个值 $ \mathbf{z}^{(i)} $**  
-2.**值 $ \mathbf{x}^{(i)} $ 是从某个条件分布 $ p_{\boldsymbol{\theta}^*}(\mathbf{x}|\mathbf{z}) $ 生成的**
+1.从某个先验分布 $ p_{\boldsymbol{\theta}^*}(\mathbf{z}) $ 生成一个值 $ \mathbf{z}^{(i)} $  
+2.值 $ \mathbf{x}^{(i)} $ 是从某个条件分布 $ p_{\boldsymbol{\theta}^*}(\mathbf{x}|\mathbf{z}) $ 生成的
 
 我们假设先验 $ p_{\boldsymbol{\theta}^*}(\mathbf{z}) $ 和似然 $ p_{\boldsymbol{\theta}^*}(\mathbf{x}|\mathbf{z}) $ 来自分布 $ p_{\boldsymbol{\theta}}(\mathbf{z}) $ 和 $ p_{\boldsymbol{\theta}}(\mathbf{x}|\mathbf{z}) $ 的参数族，并且它们的概率密度函数（PDF）几乎在 $ \boldsymbol{\theta} $ 和 $ \mathbf{z} $ 的任何地方都是可微分的。
 
