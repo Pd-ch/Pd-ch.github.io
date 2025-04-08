@@ -11,8 +11,6 @@ tags: [AI, math, VAE]
 
 论文链接：[🔗](https://arxiv.org/abs/1312.6114)
 
----
-
 ## 当我们谈论 VAE 时，我们在谈论什么？
 
 变分自编码器（Variational Autoencoder，VAE）是一种生成模型，它通过学习数据的潜在表示来生成新的数据样本。VAE 的主要目标是找到一个潜在变量的分布，使得原始数据可以被表示为这个分布的概率分布。
@@ -21,9 +19,9 @@ tags: [AI, math, VAE]
 
 接下来让我们 dive into the details of VAE。论文的 introduction 部分我们略过，直接看 method 部分。
 
----
 
 ## Method
+
 
 本节中的策略可用于为具有连续潜在变量(隐变量)的各种有向图形模型推导下限估计器（随机目标函数）。我们在这里将自己限制在常见情况下：
 
@@ -93,5 +91,5 @@ tags: [AI, math, VAE]
 边际似然由各个数据点的边际似然之和构成$\log p_{\theta}(x^{(1)}, \cdots, x^{(N)}) = \sum_{i=1}^{N} \log p_{\theta}(x^{(i)})$，其中每个项均可重写为：
 $$\begin{align} & 
     \log p_{\boldsymbol{\theta}}(\mathbf{x}^{(i)})=D_{KL}(q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x}^{(i)})||p_{\boldsymbol{\theta}}
-    (\mathbf{z}|\mathbf{x}^{(i)}))+\mathcal{L}(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{x}^{(i)})
+    (\mathbf{z}|\mathbf{x}^{(i)}))+\mathcal{L}(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{x}^{(i)})\tag{1}
 \end{align}$$
