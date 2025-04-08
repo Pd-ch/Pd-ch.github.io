@@ -91,4 +91,7 @@ tags: [AI, math, VAE]
 ### 变分界(The variational bound)
 
 边际似然由各个数据点的边际似然之和构成$\log p_{\theta}(x^{(1)}, \cdots, x^{(N)}) = \sum_{i=1}^{N} \log p_{\theta}(x^{(i)})$，其中每个项均可重写为：
-$$\begin{aligned}  & \log p_{\boldsymbol{\theta}}(\mathbf{x}^{(i)})=D_{KL}(q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x}^{(i)})||p_{\boldsymbol{\theta}}(\mathbf{z}|\mathbf{x}^{(i)}))+\mathcal{L}(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{x}^{(i)})\tag{1}\end{aligned}$$
+$$\begin{align} & 
+    \log p_{\boldsymbol{\theta}}(\mathbf{x}^{(i)})=D_{KL}(q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x}^{(i)})||p_{\boldsymbol{\theta}}
+    (\mathbf{z}|\mathbf{x}^{(i)}))+\mathcal{L}(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{x}^{(i)})
+\end{align}$$
