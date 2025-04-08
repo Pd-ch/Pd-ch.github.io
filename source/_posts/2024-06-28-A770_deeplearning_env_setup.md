@@ -6,6 +6,8 @@ tag: [env setup, intel GPU]
 
 ###### 说明：Windows下也可以进行环境搭建，但是个人更偏爱Debian。
 
+<!-- more -->
+
 ###### **Update:pytorch在24年10月中旬发布了2.5版本,添加了Intel GPU支持,使用以下代码以启用.**
 
 这是pytorch官方的链接<https://pytorch.org/docs/main/notes/get_start_xpu.html>
