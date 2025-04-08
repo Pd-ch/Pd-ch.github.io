@@ -19,7 +19,7 @@ jobs:
     - name: Install dependencies and build site
       run: |
         npm install
-        npx hexo generate
+        npx hexo d -g
 
     - name: Create .nojekyll file
       run: touch ./public/.nojekyll
