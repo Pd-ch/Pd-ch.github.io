@@ -250,7 +250,7 @@ web_analytics:  # 网页访问统计
   # Google 统计的 Tracking ID
   # Google analytics, set Tracking ID
   # See: https://developers.google.com/analytics/devguides/collection/analyticsjs
-  google: 
+  google: G-NBF661S3CF
   
 
 # 对页面中的图片和评论插件进行懒加载处理，可见范围外的元素不会提前加载
