@@ -6,7 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: docker://pandoc/core:3.5
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
