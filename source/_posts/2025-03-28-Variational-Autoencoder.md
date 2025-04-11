@@ -56,7 +56,7 @@ tags: [AI, math, VAE]
   边际似然$p_{\boldsymbol{\theta}}(\mathbf{x}) = \int p_{\boldsymbol{\theta}}(\mathbf{z})p_{\boldsymbol{\theta}}(\mathbf{x}|\mathbf{z})d\mathbf{z}$的积分难以处理，因此我们无法评估或区分边际似然。
 
 - **真实后验密度难以处理**：  
-  真实后验密度$p_{\boldsymbol{\theta}}(\mathbf{z}|\mathbf{x}) = \frac{p_{\boldsymbol{\theta}}(\mathbf{x}|\mathbf{z})p_{\boldsymbol{\theta}}(\mathbf{z})}{p_{\boldsymbol{\theta}}(\mathbf{x})}$难以处理，因此不能使用期望最大算法。
+  真实后验密度$$p_{\boldsymbol{\theta}}(\mathbf{z}|\mathbf{x}) = \frac{p_{\boldsymbol{\theta}}(\mathbf{x}|\mathbf{z})p_{\boldsymbol{\theta}}(\mathbf{z})}{p_{\boldsymbol{\theta}}(\mathbf{x})}$$难以处理，因此不能使用期望最大算法。
 
 - **积分复杂性**：  
   任何合理的均场变分贝叶斯推断算法所需的积分也难以处理。这些难解性很常见，出现在中等复杂似然函数$p_{\boldsymbol{\theta}}(\mathbf{x}|\mathbf{z})$的情况下，例如具有非线性隐藏层的神经网络。
