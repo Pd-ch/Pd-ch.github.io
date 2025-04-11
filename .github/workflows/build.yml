@@ -18,6 +18,7 @@ jobs:
     - name: Install dependencies and build site
       run: |
         npm install
+        npm i hexo-math --save
         npx hexo generate
         
     - name: Create .nojekyll file
