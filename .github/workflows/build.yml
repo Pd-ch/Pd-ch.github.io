@@ -3,21 +3,17 @@ name: Build
 on:
   push:
     branches: [ main ]
-
 jobs:
   build:
-  runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04
     steps:
-    - name: use pandoc
-    - uses: docker://pandoc/core:3.5
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-    - name: Install dependencies and build site
-      run: |
-        npm install
-        npx hexo generate
-
-    - name: Create .nojekyll file
-      run: touch ./public/.nojekyll
+    - name: Build with Pandoc
+      uses: docker://pandoc/core:3.5
+      with:
+        args: sh -c "npm install && npx hexo generate"
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
