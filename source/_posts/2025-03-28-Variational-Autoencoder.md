@@ -1,8 +1,8 @@
 ---
 key: 3
 title: 变分自编码器
-math: true
 tags: [AI, math, VAE]
+math: true
 ---
 
 ###### 说明：本文是对变分自编码器的学习总结
@@ -15,14 +15,13 @@ tags: [AI, math, VAE]
 
 变分自编码器（Variational Autoencoder，VAE）是一种生成模型，它通过学习数据的潜在表示来生成新的数据样本。VAE 的主要目标是找到一个潜在变量的分布，使得原始数据可以被表示为这个分布的概率分布。
 
+![](/assets/images/vae.png)
+
 通常的 VAE 模型包括一个编码器（Encoder）和一个解码器（Decoder）。而在无监督方法中，我们仅需要编码器，而不需要解码器。
 
 接下来让我们 dive into the details of VAE。论文的 introduction 部分我们略过，直接看 method 部分。
 
-
 ## 2. Method
-
-![](/assets/images/vae.png)
 
 本节中的策略可用于为具有连续潜在变量(隐变量)的各种有向图形模型推导下限估计器（随机目标函数）。我们在这里将自己限制在常见情况下：
 
@@ -137,48 +136,85 @@ $$\begin{aligned}
 $$
 
 
-**Algorithm 1: Minibatch Version of Auto-Encoding VB (AEVB) Algorithm**  
-*(Settings: \(M = 100\) and \(L = 1\) in experiments.)*
-
-1. **Initialize Parameters**  
-   \(\theta, \phi \leftarrow\) Initialize parameters.
-2. **Repeat until convergence**  
-   1. Sample a minibatch \(X^M\) of \(M\) datapoints (drawn from the full dataset).  
-   2. Sample noise \(\epsilon\) from the distribution \(p(\epsilon)\).  
-   3. Compute the gradients:  
-      \[
-      g \leftarrow \nabla_{\theta, \phi} \hat{L}^M (\theta, \phi; X^M, \epsilon)
-      \]
-   4. Update parameters \(\theta, \phi\) using the gradients \(g\) (e.g., SGD or Adagrad [DHS10]).
-3. **Return**  
-   \(\theta, \phi\) upon convergence.
-
-**test**
-
+通常，公式(3)中的KL散度$D_{KL}(q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x}^{(i)})||p_{\boldsymbol{\theta}}(\mathbf{z}))$可以解析计算，因此只需通过采样估计期望重构误差$\mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x}^{(i)})}\left[\log p_{\boldsymbol{\theta}}(\mathbf{x}^{(i)}|\mathbf{z})\right]$。此时，KL散度项可解释为对$\phi$的正则化项，促使近似后验分布接近先验分布$p_{\boldsymbol{\theta}}(\mathbf{z})$。由此可以得到SGVB估计量的第二个版本$\widetilde{\mathcal{L}}^B(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{x}^{(i)})\simeq\mathcal{L}(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{x}^{(i)})$，对应公式(3)，该估计量通常比通用估计量具有更小的方差：
+$$\begin{aligned}
+ & \widetilde{\mathcal{L}}^B(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{x}^{(i)})=-D_{KL}(q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x}^{(i)})||p_{\boldsymbol{\theta}}(\mathbf{z}))+\frac{1}{L}\sum_{l=1}^L(\log p_{\boldsymbol{\theta}}(\mathbf{x}^{(i)}|\mathbf{z}^{(i,l)})) \\
+ & \mathrm{where}\quad\mathbf{z}^{(i,l)}=g_{\boldsymbol{\phi}}(\boldsymbol{\epsilon}^{(i,l)},\mathbf{x}^{(i)})\quad\mathrm{and}\quad\boldsymbol{\epsilon}^{(l)}\sim p(\boldsymbol{\epsilon})
+\end{aligned}\tag{7}
 $$
-\begin{algorithm}[!h]
-    \caption{algorithm of SUM}
-    \label{alg:AOA}
-    \renewcommand{\algorithmicrequire}{\textbf{Input:}}
-    \renewcommand{\algorithmicensure}{\textbf{Output:}}
-    \begin{algorithmic}[1]
-        \REQUIRE $A$, $B$, $C$  %%input
-        \ENSURE EEEEE    %%output
-        
-        \STATE  AAAAA
-        \WHILE{$A=B$}
-            \STATE BBBBB
-        \ENDWHILE
-        
-        \FOR{each $i \in [1,10]$}
-            \IF {$C = 0$}
-                \STATE CCCCC
-            \ELSE
-                \STATE DDDDD
-            \ENDIF
-        \ENDFOR
-        
-        \RETURN EEEEE
-    \end{algorithmic}
-\end{algorithm}
+
+对于包含$N$个数据的数据集$X$，在给定多个数据的情况下，我们可以基于小批量数据构建完整数据集边际似然下界的估计量：
+$$\mathcal{L}(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{X})\simeq\widetilde{\mathcal{L}}^M(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{X}^M)=\frac{N}{M}\sum_{i=1}^M\widetilde{\mathcal{L}}(\boldsymbol{\theta},\boldsymbol{\phi};\mathbf{x}^{(i)})\tag{8}
+$$ 其中，小批量数据$\mathbf{X}^M=\{\mathbf{x}^{(i)}\}_{i=1}^M$是从包含$N$个数据的完整数据集$X$中随机抽取的$M$个数据点子集。实验结果表明，只要小批量规模$M$足够大（例如$M$=100），每个数据的样本数$L$可设为1。我们可以计算梯度$\nabla_{\boldsymbol{\theta},\boldsymbol{\phi}}\widetilde{\mathcal{L}}(\boldsymbol{\theta};\mathbf{X}^M)$，并将所得梯度与随机优化方法（如SGD或Adagrad）结合使用。随机梯度的基本计算方法请参见**Algorithm 1**。
+
+![](/assets/images/vae-algorithm.png)
+
+当我们分析公式(7)给出的目标函数时，其与自编码器的关联就变得清晰可见。其中，第一项（近似后验分布与先验分布的KL散度）充当正则化项，而第二项则是期望负重构误差。函数$g_{\phi}(.)$的设计使得它能将数据点$x^{(i)}$和随机噪声向量$\epsilon^{(l)}$映射为该数据点的近似后验分布样本：$\mathbf{z}^{(i,l)}=g_{\boldsymbol{\phi}}(\boldsymbol{\epsilon}^{(l)},\mathbf{x}^{(i)})$，其中$\mathbf{z}^{(i,l)}\sim q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x}^{(i)})$。随后，样本$z^{(i,l)}$被输入函数$\log p_\theta(\mathbf{x}^{(i)}|\mathbf{z}^{(i,l)})$，该函数表示在生成模型中给定$\mathbf{z}^{(i,l)}$时数据点$\mathbf{x}^{(i)}$的概率密度（或质量）。用自编码器的术语来说，这一项就是负*重构误差*。
+
+### 2.4 重参数化技巧
+
+为解决这一问题，我们采用了一种从条件分布$q_\phi(\mathbf{z}|\mathbf{x})$中生成样本的替代方法。这一核心的重参数化技巧原理其实非常简单：假设 $\mathbf{z}$ 是一个连续随机变量，且$\mathbf{z} \sim q_\phi(\mathbf{z}|\mathbf{x})$为某个条件分布。此时通常可以将随机变量 $\mathbf{z}$ 重新表达为一个确定性变量：$z = g_\phi(\epsilon,\mathbf{x})$，其中 $\epsilon$ 是一个具有独立边界$p(\epsilon)$的辅助变量，并且$g_\phi(.)$是由$\phi$参数化的某个向量值函数。
+
+该重参数化方法之所以适用于我们的情况，是因为它能将关于$q_\phi(\mathbf{z}|\mathbf{x})$的期望改写成可对$\phi$求导的形式，从而使得蒙特卡洛估计对$\phi$可微。具体证明如下：给定确定性映射关系 $\mathbf{z} = g_\phi(\epsilon,\mathbf{x})$，根据概率密度变换关系可得：
+$q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x})\prod_idz_i=p(\boldsymbol{\epsilon})\prod_id\epsilon_i$
+因此(请注意，对于无穷小，我们使用 $d\mathbf{z}=\prod_idz_i$)，期望可被重写为：
 $$
+\int q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x})f(\mathbf{z}) d\mathbf{z} = \int p(\boldsymbol{\epsilon})f(\mathbf{z}) d\boldsymbol{\epsilon} = \int p(\boldsymbol{\epsilon})f(g_{\boldsymbol{\phi}}(\boldsymbol{\epsilon},\mathbf{x})) d\boldsymbol{\epsilon}
+$$
+
+由此可得，我们可以构建一个可微估计量：
+$$
+\int q_{\boldsymbol{\phi}}(\mathbf{z}|\mathbf{x})f(\mathbf{z}) d\mathbf{z} \simeq \frac{1}{L} \sum_{l=1}^L f(g_{\boldsymbol{\phi}}(\boldsymbol{\mathbf{x},\epsilon}^{(l)})) 
+$$ 其中，$\boldsymbol{\epsilon}^{(l)} \sim p(\epsilon)$。在2.3节中，我们应用这一技巧得到了变分下界的可微估计量。
+
+以单变量高斯分布为例：设 $\mathbf{z}\sim p(\mathbf{z}|\mathbf{x})=\mathcal{N}(\mu,\sigma^{2})$。此时，一个有效的重参数化形式为 $z=\mu+\sigma\epsilon$，其中 $\epsilon$ 是辅助噪声变量 $\epsilon\sim\mathcal{N}(0,1)$。因此，其期望可表示为：
+$$
+\begin{array}{r}{\mathbb{E}_{\mathcal{N}(z;\mu,\sigma^{2})}\left[f(z)\right]=\mathbb{E}_{\mathcal{N}(\epsilon;0,1)}\left[f(\mu+\sigma\epsilon)\right]\simeq\frac{1}{L}\sum_{l=1}^{L}f(\mu+\sigma\epsilon^{(l)})}\end{array}
+$$ 其中 $\epsilon^{(l)}\sim\mathcal{N}(0,1)$。
+
+对于条件分布 $q_{\phi}(\mathbf{z}|\mathbf{x})$，我们可以选择这样的可微变换 $g_{\phi}(\cdot)$ 和辅助变量 $\epsilon\sim p(\epsilon)$吗？主要有以下三种基本方法：
+
+1. **可逆 累积分布函数法（CDF）**：若 $q_{\phi}(\mathbf{z}|\mathbf{x})$ 存在易处理的逆CDF，设 $\epsilon\sim\mathcal{U}(\mathbf{0},\mathbf{I})$，令 $g_{\phi}(\epsilon,\mathbf{x})$ 为该分布的逆CDF。  
+   适用分布：指数分布、柯西分布、逻辑斯谛分布、瑞利分布、帕累托分布、威布尔分布、倒数分布、冈珀茨分布、冈贝尔分布和埃尔朗分布。
+
+2. **位置-尺度分布族通用解法**：  
+   类比高斯分布案例，对于任何"位置-尺度"族分布，均可按以下方式构造重参数化：  
+   设标准分布（位置参数 $\mathit{\theta}=0$，尺度参数 $\lambda=1$）为辅助变量 $\epsilon$ 定义变换函数 $g(\cdot) = \mu + \sigma \cdot \epsilon$ 其中 $\mu$ 为位置参数，$\sigma$ 为尺度参数  
+   适用分布：拉普拉斯分布、椭圆分布、学生t分布、逻辑斯谛分布、均匀分布、三角分布和高斯分布。
+
+3. **组合变换法**：通过辅助变量的复合变换实现，常见形式包括：  
+   对数正态分布（正态分布变量的指数变换），伽马分布（多个指数分布变量的和），狄利克雷分布（伽马变量的加权和），贝塔分布、卡方分布、F分布等
+
+当上述三种方法均不适用时，仍可通过计算复杂度与概率密度函数（PDF）相当的数值方法来获得逆累积分布函数（inverse CDF）的高精度近似解。
+
+至此，总算到了我们关心的部分。
+
+## 3. 例子：变分自编码器
+
+在本节中，我们将给出一个应用示例：使用神经网络构建概率编码器 $q_{\phi}(\mathbf{z}|\mathbf{x})$（作为生成模型 $p_{\pmb{\theta}}(\mathbf{x},\mathbf{z})$ 后验分布的近似），并通过AEVB算法联合优化参数 $\phi$ 和 $\pmb{\theta}$。
+
+设隐变量的先验分布为中心各向同性多元高斯分布 $p_{\pmb{\theta}}(\mathbf{z}) = \mathcal{N}(\mathbf{z};\mathbf{0},{\mathbf{I}})$。需要注意的是，这种情况下先验分布不含参数。我们令 $p_{\pmb{\theta}}(\mathbf{x}|\mathbf{z})$ 为多元高斯分布（实值数据）或伯努利分布（二值数据），其分布参数通过一个MLP从 $\mathbf{z}$ 计算得到。需要注意的是，真实后验 $p_{\pmb{\theta}}(\mathbf{z}|\mathbf{x})$ 在这种情况下是难以处理的。
+
+虽然 $q_{\phi}(\mathbf{z}|\mathbf{x})$ 的形式选择具有很大自由度，但我们假设真实（但难以处理的）后验服从近似高斯形式且具有近似对角协方差矩阵。在这种情况下，我们可以设变分近似后验为具有对角协方差结构的多元高斯分布（请注意，这只是一个（简化的）选择，而不是我们方法的限制）：
+$$
+\log q_{\phi}(\mathbf{z}|\mathbf{x}^{(i)})=\log\mathcal{N}(\mathbf{z};\pmb{\mu}^{(i)},\pmb{\sigma}^{2(i)}\mathbf{I})\tag{9}
+$$
+如第2.4节所述，我们使用$$
+\mathbf{z}^{(i,l)} = g_{\phi}(\mathbf{x}^{(i)},\epsilon^{(l)}) = \pmb{\mu}^{(i)} + \pmb{\sigma}^{(i)} \odot \pmb{\epsilon}^{(l)}
+$$从后验分布$\mathbf{z}^{(i,l)}\sim q_{\phi}(\mathbf{z}|\mathbf{x}^{(i)})$中采样，其中 $\epsilon^{(l)} \sim \mathcal{N}(\mathbf{0},\mathbf{I})$，符号 $\odot$ 表示逐元素乘积。在该模型中：先验分布 $p_{\pmb{\theta}}(\mathbf{z})$ 与近似后验 $q_{\phi}(\mathbf{z}|\mathbf{x})$ 均为高斯分布,可直接计算KL散度（无需估计）并求导,基于公式(7)的估计量，对数据 $\mathbf{x}^{(i)}$ 的最终估计式为：
+$$
+\begin{array}{r l}&{\mathcal{L}(\pmb{\theta},\phi;\mathbf{x}^{(i)})\simeq\displaystyle\frac{1}{2}\sum_{j=1}^{J}\left(1+\log((\sigma_{j}^{(i)})^{2})-(\mu_{j}^{(i)})^{2}-(\sigma_{j}^{(i)})^{2}\right)+\frac{1}{L}\sum_{l=1}^{L}\log p_{\pmb{\theta}}(\mathbf{x}^{(i)}|\mathbf{z}^{(i,l)})}\\ &{\mathrm{where}\quad\mathbf{z}^{(i,l)}=\pmb{\mu}^{(i)}+\pmb{\sigma}^{(i)}\odot\pmb{\epsilon}^{(l)}\quad\mathrm{and}\quad\pmb{\epsilon}^{(l)}\sim\mathcal{N}(0,\mathbf{I})}\end{array}\tag{10}
+$$  
+如上所述，解码项$\log p_{\pmb{\theta}}(\mathbf{x}^{(i)}|\mathbf{z}^{(i,l)})$根据建模数据类型的不同，可表现为伯努利MLP或高斯MLP的形式。
+
+余下部分就不详细展开了。
+
+## 4. 我的总结
+
+### 要讲VAE,首先得聊聊AE。
+AE（Autoencoder）由两个主要组件组成：编码器$\mathbf{z}=f_{\phi}(\mathbf{x})$和解码器$\mathbf{x}=g_{\theta}(\mathbf{z})$。编码器的目标是将输入数据$\mathbf{x}$映射到一个低维的潜在表示$\mathbf{z}$，而解码器的目标是将潜在表示$\mathbf{z}$映射回原始数据空间$\mathbf{x}$。AE通常使用的Loss函数是$\ell=\|X-\tilde{X}\|^2$。
+
+## 5. 一些可能有帮助的资料
+
+[机器学习方法—优雅的模型（一）：变分自编码器（VAE）](https://zhuanlan.zhihu.com/p/348498294)
+[机器学习-白板推导系列-变分自编码器](https://www.bilibili.com/video/BV1aE411o7qd/?p=170)

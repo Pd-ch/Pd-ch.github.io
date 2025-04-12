@@ -111,17 +111,6 @@ ignore:
 ## Themes: https://hexo.io/themes/
 theme: fluid
 
-# hexo-math
-math:
-  mathjax:
-    css: 'https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css'
-    options:
-      conversion:
-        display: false
-      tex:
-        packages: ['algorithm']
-      svg:
-
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
