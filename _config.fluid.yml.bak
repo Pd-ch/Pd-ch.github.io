@@ -841,22 +841,10 @@ links:
   # 友链的成员项
   # Member item of page
   items:
-    # - link: https://blog.hibobmaster.com/
-    #   title: BobMaster's Blog
-    #   intro: awesome
-    #   avatar: https://blog.hibobmaster.com/wp-content/uploads/2020/08/cropped-temp_profile_image297053980101578163-192x192.jpg
-    # - link: https://blog.twofei.com/
-    #   title: 陪她去流浪
-    #   intro: awesome
-    #   avatar: https://blog.twofei.com/v3/comments/827/avatar
-    # - link: https://blog.yujinyan.me/
-    #   title: Yu Jinyan's Blog
-    #   intro: awesome
-    #   avatar: https://raw.githubusercontent.com/yujinyan/blog/master/content/assets/profile-pic.png
-    # - link: https://blog.itswincer.com/
-    #   title: Wincer's Blog
-    #   intro: awesome
-    #   avatar: https://ae01.alicdn.com/kf/HTB1DdGHXizxK1RjSspj763S.pXax.png
+    - link: http://taboo-sdh.top
+      title: Taboo's Blog
+      intro: Pd.ch的朋友，嵌入式开发者，喜欢研究一些稀奇古怪的小东西。
+      avatar: http://taboo-sdh.top/wp-content/uploads/2024/04/1712235965-栗子球头像.jpg
 
   # 当成员头像加载失败时，替换为指定图片
   # When the member avatar fails to load, replace the specified image
