@@ -17,17 +17,26 @@ math: true
 
 变分自编码器（Variational Autoencoder，VAE）是一种生成模型，它通过学习数据的潜在表示来生成新的数据样本。VAE 的主要目标是找到一个潜在变量的分布，使得原始数据可以被表示为这个分布的概率分布。
 
-![](/assets/images/vae.png)
-
 通常的 VAE 模型包括一个编码器（Encoder）和一个解码器（Decoder）。而在无监督方法中，我们仅需要编码器，而不需要解码器。
 
 接下来让我们 dive into the details of VAE。
 
 
-## 2. 我的一点看法
+## 2. 前VAE时代
 
-### 要讲VAE,首先看看VAE以前的时代。
-最初AE（Autoencoder）由两个主要组件组成：编码器$\mathbf{z}=f_{\phi}(\mathbf{x})$和解码器$\mathbf{x}=g_{\theta}(\mathbf{z})$。编码器的目标是将输入数据$\mathbf{x}$映射到一个低维的潜在表示$\mathbf{z}$，而解码器的目标是将潜在表示$\mathbf{z}$映射回原始数据空间$\mathbf{x}$。AE通常使用的Loss函数是$\ell=\|X-\tilde{X}\|^2$。这个Loss函数能够很直观的告诉我们重构出的数据和原始数据之间的差异。
+### 最初的Autoencoder
+
+AE（Autoencoder）由两个主要组件组成：编码器$\mathbf{z}=f_{\phi}(\mathbf{x})$和解码器$\mathbf{x}=g_{\theta}(\mathbf{z})$。编码器的目标是将输入数据$\mathbf{x}$映射到一个低维的潜在表示$\mathbf{z}$，而解码器的目标是将潜在表示$\mathbf{z}$映射回原始数据空间$\mathbf{x}$。AE通常使用的Loss函数是$\ell=\|X-\tilde{X}\|^2$。这个Loss函数能够很直观的告诉我们重构出的数据和原始数据之间的差异。
+
+这种情况下因为我们没有对$\mathbf{z}$进行约束，所以潜在表示$\mathbf{z}$可能会非常自由，这可能导致潜在表示$\mathbf{z}$的分布非常复杂，无法很好的表示原始数据的分布。我们的数据是有限的，而潜在表示$\mathbf{z}$是无限的，decoder可能只对有限的$\mathbf{z}$有很好的响应。导致生成效果不理想。
+
+![](/assets/images/vae.png)
+
+从这张图我们可以知道，$\mathbf{z}$ 是我们编码器的输出，解码器的输入。$\mathbf{x}$ 是我们的输入数据，解码器的输出。$\phi$ 是编码器的参数，$\theta$ 是解码器的参数。
+
+### 一些假设
+
+原文的2.1 问题场景章节中，我们假设数据是由某个随机过程生成的，这个随机过程涉及一个未观测的连续变量 $\mathbf{z}$ ，这个变量的分布是未知的。该过程包括两个步骤：首先，从某个先验分布 $p_{\theta^*}$ 生成一个值 $\mathbf{z}^{(i)}$ ;然后，值 $\mathbf{x}^{(i)}$ 是从某个条件分布 $p_{\theta^*}(\mathbf{x}|\mathbf{z}^{(i)})$ 生成的。我们**假设**先验 $p_{\theta^*}(\mathbf{z})$ 和似然 $p_{\theta^*}(\mathbf{x}|\mathbf{z})$ 来自 $p_\theta(\mathbf{z})$ 和 $p_\theta(\mathbf{x}|\mathbf{z})$ 的参数分布族，并且他们的概率密度函数几乎可以在 $\theta$ 和 $\mathbf{z}$ 的任何地方上微分。
 
 ## 3. 一些参考资料
 
