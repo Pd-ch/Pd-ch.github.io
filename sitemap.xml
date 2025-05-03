@@ -11,7 +11,16 @@
   </url>
   
   <url>
-    <loc>https://pd-ch.github.io/2024/09/29/My-environment-setup.html</loc>
+    <loc>https://pd-ch.github.io/2025/05/03/arxiv-1312-6114v11.html</loc>
+    
+    <lastmod>2025-05-03</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://pd-ch.github.io/about/index.html</loc>
     
     <lastmod>2025-05-03</lastmod>
     
@@ -21,6 +30,15 @@
   
   <url>
     <loc>https://pd-ch.github.io/2024/06/28/A770_deeplearning_env_setup.html</loc>
+    
+    <lastmod>2025-05-03</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://pd-ch.github.io/2024/09/29/My-environment-setup.html</loc>
     
     <lastmod>2025-05-03</lastmod>
     
@@ -47,16 +65,7 @@
   </url>
   
   <url>
-    <loc>https://pd-ch.github.io/2025/05/03/arxiv-1312-6114v11.html</loc>
-    
-    <lastmod>2025-05-03</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://pd-ch.github.io/about/index.html</loc>
+    <loc>https://pd-ch.github.io/2025/05/04/clang+clangd+xmake-import-std.html</loc>
     
     <lastmod>2025-05-03</lastmod>
     
