@@ -30,6 +30,7 @@ sudo ./llvm.sh 20 all
 ```
 
 **注意**：需要有对应的libc++-20-dev包。如果有任何疑问可以使用apt policy libc++-20-dev查看。
+
 **警告**：如果clang，clangd，与libc++-dev版本对不上，clangd就不能正常工作。
 
 ### 1.2 安装xmake
@@ -45,7 +46,7 @@ wget https://xmake.io/shget.text -O - | bash
 可以参考[[万字长文]Visual Studio Code 配置 C/C++ 开发环境的最佳实践(VSCode + Clangd + XMake)](https://zhuanlan.zhihu.com/p/398790625)。
 
 注意
-```
+``` json
 {
   "clangd.arguments": ["--compile-commands-dir=${workspaceFolder}/.vscode"]
 }
@@ -85,7 +86,7 @@ auto main() -> int {
 ```
 
 此时你的项目结构应该是这样的：
-```
+``` bash
 ├── xmake.lua
 └── main.cpp
 ```
