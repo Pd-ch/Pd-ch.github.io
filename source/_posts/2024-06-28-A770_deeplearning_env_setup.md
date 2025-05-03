@@ -12,7 +12,7 @@ tag: [env setup, intel GPU]
 
 这是pytorch官方的链接<https://pytorch.org/docs/main/notes/get_start_xpu.html>
 
-我们需要准备好GPU驱动,oneAPI.(不过现在仍然处于Preview版本)
+我们仅仅需要准备好GPU驱动即可。
 ```
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/test/xpu
 ```
