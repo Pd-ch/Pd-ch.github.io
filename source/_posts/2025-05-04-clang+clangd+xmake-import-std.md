@@ -12,9 +12,10 @@ math: true
 ## 1. 环境配置
 
 我个人使用的环境是：
+
 - Debian unstable
 - visual studio code
-- Clang 20。1.5
+- Clang 20.1.5
 - Clangd 20.1.5
 - Xmake 2.9.9
 
