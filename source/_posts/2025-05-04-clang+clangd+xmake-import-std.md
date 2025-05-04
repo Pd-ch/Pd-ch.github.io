@@ -96,6 +96,6 @@ auto main() -> int {
 xmake
 ```
 
-产物位于**build/build/linux/x86_64/release/**目录下。
+产物位于**build/linux/x86_64/release/**目录下。
 
 ## enjoy it!
