@@ -5,7 +5,7 @@ tags: [C++, clang, clangd, xmake, std module]
 math: true
 ---
 
-###### 说明：本文介绍如何使用Clang+Clangd+Xmake启用C++-23新特性"mport std"。
+###### 说明：本文介绍如何使用Clang+Clangd+Xmake启用C++-23新特性"import std"。
 
 <!-- more -->
 
