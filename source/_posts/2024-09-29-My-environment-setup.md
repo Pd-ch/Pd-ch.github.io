@@ -34,7 +34,7 @@ tags: [env setup]
 
 代理的设置建议如下
 新建 **~/scripts/proxy.sh**,并在该脚本文件中复制以下代码,其中hostip和port按需更改:
-~~~
+~~~ bash
 #!/bin/sh
 hostip=127.0.0.1
 port=7890
@@ -108,7 +108,7 @@ fi
 但是我更推荐安装闭源驱动，如果有内核更新，记得要**sudo apt install linux-headers-$(uname -r)**.
 
 安装 apt GPG keyring 包，目的是获取 GPG 密钥
-~~~
+~~~ bash
 wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 ~~~
@@ -116,10 +116,32 @@ sudo dpkg -i cuda-keyring_1.1-1_all.deb
 可以到此位置<https://developer.download.nvidia.com/compute/cuda/repos/>浏览具体发行版
 
 apt 安装驱动
-~~~
+~~~ bash
 sudo apt update
 sudo apt -y install nvidia-driver cuda-drivers
 ~~~
+
+或者
+~~~ bash
+sudo apt install nvidia-driver-assistant
+nvidia-driver-assistant
+~~~
+此时会给出像下面的指引
+~~~ bash
+Detected GPUs:
+  NVIDIA GeForce RTX 4060 Laptop GPU - (pci_id 0x28E0)
+
+Detected system:
+  Debian GNU/Linux 13
+
+Please copy and paste the following command to install the open kernel module flavour:
+  sudo apt-get install -Vy nvidia-open
+~~~
+按照指引
+~~~ bash
+sudo apt-get install -Vy nvidia-open
+~~~
+即可
 
 至此,你已经几乎完成了环境的搭建。
 
