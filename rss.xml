@@ -1,0 +1,976 @@
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet href="/scripts/pretty-feed-v3.xsl" type="text/xsl"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:h="http://www.w3.org/TR/html4/"><channel><title>Pdch&apos;s log</title><description>Life, AI and Galgame</description><link>https://pd-ch.github.io</link><item><title>LZN的无监督方法介绍</title><link>https://pd-ch.github.io/blog/2025-10-17-latent-zoning-network-interpretation</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2025-10-17-latent-zoning-network-interpretation</guid><description>LZN的无监督方法的详细介绍</description><pubDate>Thu, 17 Oct 2024 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;写在前面&lt;/h2&gt;
+&lt;p&gt;Latent Zoning Network: A Unified Principle for Generative Modeling, Representation Learning, and Classification 是一篇由 Microsoft 发表在 NeurIPS 2025 的论文，通过“共享高斯潜在空间 + 编码器/解码器对”将三类任务统一为同一框架下的不同“翻译”操作，从而简化流程、促进任务间协同。&lt;/p&gt;
+&lt;p&gt;国庆节前笔者当时正在苦想latent可以通过何种方法进行手动设计以及无监督领域可以如何应用flow matching，当晚就刷到了新鲜出炉的LZN，很合胃口，遂决定花时间深入研究一番，并撰写本文以分享理解与见解。&lt;/p&gt;
+&lt;p&gt;笔者假定读者了解无监督学习的基本概念，熟悉flow matching，以及在无监督学习/对比学习上对截至到BYOL/SimSiam等方法的主流思路有一定认识。&lt;/p&gt;
+&lt;p&gt;没有的话也没关系，本文会尽量做到通俗易懂。以及这篇文章比较好的列出了发展脉络，适合想要入门的读者阅读：&lt;a href=&quot;https://zhuanlan.zhihu.com/p/537647617&quot;&gt;万字长文谈图像中的无监督学习（Moco、Simclr、BYOL、SimSiam、SwAV、MAE、IPT）&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;本文主要关注LZN的无监督学习方法，即论文中的 “Case Study 2: Unsupervised Representation Learning” 部分，接下来我会对这部分进行详细介绍与分析。&lt;/p&gt;
+&lt;h2&gt;LZN的无监督方法&lt;/h2&gt;
+&lt;p&gt;首先我们需要弄清楚LZN定义了两个重要步骤：潜在计算(Latent Computation)和潜在对齐(Latent Alignment)。&lt;/p&gt;
+&lt;h3&gt;Latent Computation&lt;/h3&gt;
+&lt;p&gt;下面是潜在计算的步骤：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;同一种数据类型的样本：$\mathcal{X}=\left{x_{1}, \ldots, x_{n}\right}$&lt;/li&gt;
+&lt;li&gt;$z_1,\ldots,z_n=C\left(\mathcal{X}\right)$：随机潜在计算函数 $C$ 将样本映射到潜在空间，得到潜在表示。其中 $z_n$ 遵循高斯分布 $\mathcal{N}\left(0,\mathbf{I}\right)$，并且不同样本的潜在区域是互不重叠的，这点我们后面会看到。&lt;/li&gt;
+&lt;li&gt;我们使用一个确定的编码器 $E_x$ 将样本 $x_i$ 映射到锚点anchor $a_i$，即 $a_i=E_x\left(x_i\right)$。&lt;/li&gt;
+&lt;li&gt;使用流匹配(FM)方法在分布间建立一对一映射关系，将锚点映射到潜在表示。特别的，我们定义一族分布$\pi_t$，端点(期望的先验潜在分布)是$\pi_0=\mathcal{N}\left(0,\mathbf{I}\right)$，以及$\pi_{1}(s)=\frac{1}{n}\sum_{i=1}^{n}\delta(s-a_{i})$(锚点的分布，$\delta$是Dirac delta函数)。中间的分布$\pi_t$通过线性插值定义：$\pi_{t}=\left(1-t\right)\pi_0+t\pi_1$。那么FM的速度场：
+$$
+V(s,t)\triangleq\mathbb{E}&lt;em&gt;{s_0\sim\pi_0,s_1\sim\pi_1}\left(\frac{\partial\varphi(s_0,s_1,t)}{\partial t}|\varphi(s_0,s_1,t)=s\right)=\frac{\sum&lt;/em&gt;{i=1}^n(a_i-s)\exp\left(-\frac{(s-ta_i)^2}{2(1-t)^2}\right)}{(1-t)\sum_{i=1}^n\exp\left(-\frac{(s-ta_i)^2}{2(1-t)^2}\right)}.
+$$&lt;/li&gt;
+&lt;li&gt;我们可以通过沿FM轨迹积分得到:$s_t = \text{FM}&lt;em&gt;x(s_0; t) \triangleq s_0 + \int&lt;/em&gt;{\tau=0}^{t} V(s_\tau, \tau) , \mathrm{d}\tau$,其中$s_0\sim\pi_0$。可以确定地说，$s_t$的分布就是$\pi_t$。同样，通过反向过程：$s_t = \text{IFM}&lt;em&gt;x(s&lt;/em&gt;{1-g}; t) \triangleq s_{1-g} + \int_{\tau=1-g}^{t} V(s_\tau, \tau) , \mathrm{d}\tau \text{ for } s_{1-g} \sim \pi_{1-g} \triangleq (1-g)\pi_1 + g\mathcal{N}(0, \mathbf{I})$也可以得到$\pi_t$，其中$g\in[0,1]$是一个小的常数。&lt;/li&gt;
+&lt;li&gt;略微滥用一下符号，我们也用$s_t=\text{IFM}&lt;em&gt;x(a_i,\epsilon_i,t)$来表示$\text{IFM}&lt;em&gt;x(s&lt;/em&gt;{1-g}; t)$，其中$s&lt;/em&gt;{1-g}=(1-g)a_i+g\epsilon_i$。基于上述设置我们可以定义潜在计算函数：
+$$
+z_i = C(\mathcal{X})_i \triangleq \text{IFM}_x\left(a_i, \epsilon_i; 0\right), \quad \text{where } \epsilon_i \sim \mathcal{N}(0, \mathbf{I}).
+$$
+由于构造了FM,我们可以保证先验分布是高斯的，并且不同样本的潜在区域是互不重叠的。在点在论文的附录A.1中有更详细的解释。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;在实现中计算$C$涉及一个积分操作，使用数值方法进行近似，例如Euler或者DPM-Solver.&lt;/p&gt;
+&lt;p&gt;截止到这里我们已经知道如何进行计算，但是我们仍然不知道如何进行有效的训练，这正是接下来我们要介绍的部分。&lt;/p&gt;
+&lt;h3&gt;Latent Alignment&lt;/h3&gt;
+&lt;p&gt;设$\mathcal{X} = {x_1, \ldots, x_n}$ 和 $\mathcal{Y} = {y_1, \ldots, y_m}$ 是来自不同数据类型的两个数据集。配对由 $k_i$ 定义，其中 $y_i$（例如，一张猫的图片）与 $x_{k_i}$（例如，“猫”标签）配对。我们的目标是确保 $\text{Supp}\left(C\left(\mathcal{X}\right)_{k_i}\right) \supseteq \text{Supp}\left(C\left(\mathcal{Y}\right)&lt;em&gt;i\right)$ 对于所有 $i \in [m]$ 成立，这意味着 $x&lt;/em&gt;{k_i}$ 的潜在区域覆盖了 $y_i$ 的区域。这种表述直接支持多对一的对齐。对于一对一的对齐，可以通过交换 $x$ 和 $y$ 添加一个对称约束。&lt;/p&gt;
+&lt;p&gt;给定FM积分轨迹，对齐问题简化为确保当 $y_i$ 通过轨迹映射时，其潜在点与 $x_{k_i}$ 的锚点匹配：$\text{FM}_x\left(C\left(\mathcal{Y}\right)&lt;em&gt;i; 1\right) = E_x\left(x&lt;/em&gt;{k_i}\right)$。&lt;/p&gt;
+&lt;p&gt;一个重大挑战是：离散分配不可微。在介绍我们的解决方案之前，我们通过检查简单的方法来说明为什么这个问题并不简单。一个自然的想法是直接最小化距离：$d\left(\text{FM}_x\left(C\left(\mathcal{Y}\right)&lt;em&gt;i; 1\right), E_x\left(x&lt;/em&gt;{k_i}\right)\right)$，其中 $d(\cdot, \cdot)$ 是一个距离度量。这种方法失败了，因为FM确定性地将每个潜在点映射到恰好一个锚点 $E_x\left(x_j\right)$，因此上述目标实际上变成了最小化锚点之间的距离。然而，一个潜在区域受到所有锚点的影响，而不仅仅是它自己的。因此，减少一对锚点之间的距离并不一定改善区域级别的对齐。更根本的是，核心挑战在于FM引发了一个离散分配：每个潜在点确定性地映射到一个锚点。这种离散操作是不可微的，不能在训练期间直接优化。&lt;/p&gt;
+&lt;p&gt;解决方案：&lt;/p&gt;
+&lt;h4&gt;对齐的软近似。&lt;/h4&gt;
+&lt;p&gt;为了解决这个问题，我们的关键思想是引入离散锚点分配过程的软近似。让我们定义 $s_t^i = \text{FM}_x\left(C\left(\mathcal{Y}\right)&lt;em&gt;i; t\right)$ 和 $a_l = E_x\left(x_l\right)$。根据构造，分布 $\pi_t$ 是高斯混合：$\pi_t = \frac{1}{n} \sum&lt;/em&gt;{l=1}^{n} \mathcal{N}(t a_l, (1-t)^2 \mathbf{I})$，其中第 $l$ 个分量对应于锚点 $a_l$。我们定义 $s_t^i$ 被分配到 $a_l$ 的（软）概率为在第 $l$ 个高斯分量下 $s_t^i$ 的密度的比例：&lt;/p&gt;
+&lt;p&gt;$$
+\mathbb{P}\left(a_l \vert s_t^i\right) = \frac{\exp\left(-\frac{|s_t^i - t a_l|^2}{2(1-t)^2}\right)}{\sum_{j=1}^{n} \exp\left(-\frac{|s_t^i - t a_j|^2}{2(1-t)^2}\right)}.
+$$&lt;/p&gt;
+&lt;p&gt;这种公式提供了一种平滑的、可微的近似方法，用于处理原本离散的分配问题。当 $t=0$ 时，近似完全平滑，对于所有的 $i, l$，有 $\mathbb{P}\left(a_l \vert s_0^i\right) = 1/n$，反映了一种均匀分配。随着 $t$ 增加到 1，分配变得更加明确。当 $t \to 1$ 的极限时，它收敛到真正的离散分配，其中 $s_t^i$ 确定性地映射到其分配的锚点。
+由此，一个简单的想法是最大化所有时间步上的分配概率，例如 $\sum_{t \in {t_1, \ldots, t_r}} \mathbb{P}\left(a_{k_i} \vert s_t^i\right)$（回忆 $t_i$ 是求解器时间步；参见 § 2.2.1）。然而，我们的最终目标仅是在 $t=1$ 时确保正确的分配。即使实现了这一点，上述目标仍将继续推动中间状态 $s_t$ 向 $a_{k_i}$ 靠拢，这是不必要的，并且可能有害。&lt;/p&gt;
+&lt;h4&gt;优化最大分配概率。&lt;/h4&gt;
+&lt;p&gt;为了避免这个问题，我们建议最大化 $\max_{t \in {t_1, \ldots, t_r}} \mathbb{P}\left(a_{k_i} \vert s_t^i\right)$。这确保了一旦轨迹在 $t=1$ 附近达到正确的锚点，目标对象就被最大化（即等于1），并且不再应用进一步的梯度，正如所期望的那样。&lt;/p&gt;
+&lt;h4&gt;早期步骤截断。&lt;/h4&gt;
+&lt;p&gt;然而，这种方法引入了一个新的问题：如果 $s_t$ 在早期就偏离了 $a_{k_i}$，那么最大概率将保持在常数 $1/n$（在 $t = t_1 = 0$ 时达到），从而不产生任何训练信号。为了缓解这个问题，我们截断用于最大化的时间步集合，将其限制在轨迹的后期阶段：${t_u, \ldots, t_r}$，其中 $u$ 是一个排除早期时间步的超参数。综合起来，我们提出的对齐目标是：&lt;/p&gt;
+&lt;p&gt;$$
+\text{Align}(\mathcal{X}, \mathcal{Y}) \triangleq \text{maximize} \sum_{i=1}^{m} \max_{t \in {t_u, \ldots, t_r}} \mathbb{P}\left(a_{k_i} \vert s_t^i\right).
+$$&lt;/p&gt;
+&lt;p&gt;附录B给出了更详细的实现细节。&lt;/p&gt;
+&lt;h3&gt;总结LZN的两个关键操作&lt;/h3&gt;
+&lt;p&gt;潜在计算(Latent Computation)通过流匹配将数据样本的锚点映射到高斯潜在空间，确保不同样本的潜在区域互不重叠。潜在对齐(Latent Alignment)通过引入软近似和优化最大分配概率，解决了离散分配不可微的问题，实现了不同数据类型之间的有效对齐。&lt;/p&gt;
+&lt;p&gt;使用口语化的说法，FM就像是一条“传送带”，它将数据点从一个空间平滑地移动到另一个空间。潜在计算操作则是计算每个样本的锚点被分配到每条传送带上的概率，而潜在对齐操作则确保这些传送带最终将样本正确地送达其目标位置。&lt;/p&gt;
+&lt;h2&gt;一句话总结Case Study 2无监督表征学习&lt;/h2&gt;
+&lt;p&gt;潜在计算所需的数据集$\mathcal{X}$和$\mathcal{Y}$分别是无标签图像数据集和经过数据增强后的图像数据集，通过潜在对齐确保增强后的图像在潜在空间中的表示与原始图像的表示一致，从而实现无监督表征学习。&lt;/p&gt;
+&lt;h2&gt;后记&lt;/h2&gt;
+&lt;p&gt;这篇文章出现之前我就一直在想如何对latent,representation或者说embedding进行手动设计，VAE通过将后验分布拟合为高斯分布，Kl散度正则化和重参数化技巧实现了可控生成与强泛化；&lt;/p&gt;
+&lt;p&gt;后面发展出来的VQ-VAE和RQ-VAE通过将连续隐空间离散化为有限的codebook和Straight-Through Estimator操作获得了离散空间的优越性，实现了更高质量的生成与更强的表达能力；&lt;/p&gt;
+&lt;p&gt;MVEB将最小充分表示的学习目标从 互信息优化 转化为 对齐性 + 均匀性 的显式组合，使用基于vMF核的分数熵估计器，在超球面上直接估计熵的梯度，无需引入VAE式的随机网络，之前的SimCLR/moco需要大量的负样本对比，而BYOL/SimSiam等方法则通过引入动量编码器和stop-gradient操作避免了模式崩溃，这些方法都在不同程度上对latent空间进行了设计与优化；&lt;/p&gt;
+&lt;p&gt;LZN则是利用构造出的FM轨迹天生不可能相交的性质，实现了不同样本潜在区域的互不重叠，在设计上就不会出现模式崩溃的问题，同时通过潜在对齐的设计实现了不同数据类型间的有效对齐；&lt;/p&gt;
+&lt;p&gt;LeJEPA（Latent-Euclidean Joint-Embedding Predictive Architecture）是Yann LeCun等人于2025年11月提出的最新自监督学习框架，作为JEPA系列的&quot;收官之作&quot;，其核心贡献在于用理论严谨性替代经验启发式，解决了表示坍缩这一根本问题，首次从理论上证明：各向同性高斯分布（isotropic Gaussian）是唯一最小化下游预测风险的嵌入分布，为实现该分布，LeJEPA提出速写各向同性高斯正则化（SIGReg），SIGReg的思路非常巧妙，它借鉴了Cramér-Wold定理的思想：如果两个高维分布在所有一维投影上的分布都相同，那么这两个高维分布本身就是相同的。SIGReg正是利用了这一点：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;速写（Sketching）：在每次训练迭代中，随机生成若干个（比如几百个）1D投影方向。&lt;/li&gt;
+&lt;li&gt;投影（Projection）：将一批高维的嵌入向量，分别投影到这些1D方向上，得到若干组一维数据。&lt;/li&gt;
+&lt;li&gt;匹配（Matching）：使用一个高效的统计检验方法（论文推荐了稳定且可微的Epps-Pulley检验），来计算这些一维数据与标准高斯分布之间的差异。&lt;/li&gt;
+&lt;li&gt;正则化（Regularization）：将这个差异作为正则化项加入到总损失中，从而“督促”编码器生成的嵌入分布向各向同性高斯分布看齐。[^1]&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;MVEB等最小充分表示学习方法是在超球面上约束latent为均匀分布，而LeJEPA则是通过SIGReg将latent约束为各向同性高斯分布，相较于超球面上的均匀分布来说，各向同性高斯分布在理论上有更好的性质，更适合用作下游任务的输入分布。&lt;/p&gt;
+&lt;p&gt;那么读者就要问了，笔者笔者，这么好的方法，你为什么不用呢？笔者只能看着paper附录写着的几百数千的A100 GPU卡时笑而不语了。&lt;/p&gt;
+&lt;p&gt;[^1]: &lt;a href=&quot;https://zhuanlan.zhihu.com/p/1974108441149723348&quot;&gt;Yann LeCun团队新作LeJEPA：单超参、50行代码，实现可证明、可扩展的自监督学习&lt;/a&gt;&lt;/p&gt;</content:encoded><h:img src="/_astro/banner.G1UFX8zt.png"/><enclosure url="/_astro/banner.G1UFX8zt.png"/></item><item><title>深度学习中的矩阵求导基础</title><link>https://pd-ch.github.io/blog/2025-07-18-the-basics-of-matrix-differentiation-in-deep-learning</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2025-07-18-the-basics-of-matrix-differentiation-in-deep-learning</guid><description>介绍深度学习中常用的矩阵求导基础知识，包括分母布局和分子布局，以及链式法则的应用。</description><pubDate>Mon, 14 Jul 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;import { Aside } from &apos;astro-pure/user&apos;&lt;/p&gt;
+&lt;h1&gt;深度学习中的矩阵求导基础&lt;/h1&gt;
+&lt;h2&gt;矩阵求导的布局&lt;/h2&gt;
+&lt;p&gt;在深度学习中，矩阵求导是一个重要的概念。我们通常使用两种布局来表示矩阵求导：分母布局（Denominator Layout）和分子布局（Numerator Layout）。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;分母布局（Denominator Layout）&lt;/strong&gt;
+在分母布局中，我们将矩阵的每一行视为一个整体，求导时将整个行作为一个单位来处理。这种布局在处理一些特定类型的矩阵时非常有用，例如在计算雅可比矩阵（矩阵的一阶导，Jacobian Matrix）时。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;分子布局（Numerator Layout）&lt;/strong&gt;
+在分子布局中，我们将矩阵的每一列视为一个整体，求导时将整个列作为一个单位来处理。这种布局在处理一些其他类型的矩阵时更为方便，例如在计算海森矩阵（矩阵的二阶导，Hessian Matrix）时。&lt;/p&gt;
+&lt;p&gt;对于一个函数 $\mathbf{y} = \mathbf{W}\mathbf{x}$ ，其中 $\mathbf{y}\in\mathbb{R}^{D_1}, \mathbf{W}\in\mathbb{R}^{D_1 \times D_2}, \mathbf{x}\in\mathbb{R}^{D_2}$ ，其导数为:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\frac{\partial \mathbf{y}}{\partial \mathbf{x}} = \left[\begin{array}{cccc}
+\frac{\partial y_1}{\partial x_1} &amp;#x26; \frac{\partial y_2}{\partial x_1} &amp;#x26; \cdots &amp;#x26; \frac{\partial y_{D_1}}{\partial x_1} \\
+\frac{\partial y_1}{\partial x_2} &amp;#x26; \frac{\partial y_2}{\partial x_2} &amp;#x26; \cdots &amp;#x26; \frac{\partial y_{D_1}}{\partial x_2} \\
+\vdots &amp;#x26; \vdots &amp;#x26; \ddots &amp;#x26; \vdots \\
+\frac{\partial y_1}{\partial x_{D_2}} &amp;#x26; \frac{\partial y_2}{\partial x_{D_2}} &amp;#x26; \cdots &amp;#x26; \frac{\partial y_{D_1}}{\partial x_{D_2}}
+\end{array}\right] = \mathbf{W}^\top \textrm{ (Denominator Layout)}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\frac{\partial \mathbf{y}}{\partial \mathbf{x}} = \left[\begin{array}{cccc}
+\frac{\partial y_1}{\partial x_1} &amp;#x26; \frac{\partial y_1}{\partial x_2} &amp;#x26; \cdots &amp;#x26; \frac{\partial y_1}{\partial x_{D_2}} \\
+\frac{\partial y_2}{\partial x_1} &amp;#x26; \frac{\partial y_2}{\partial x_2} &amp;#x26; \cdots &amp;#x26; \frac{\partial y_2}{\partial x_{D_2}} \\
+\vdots &amp;#x26; \vdots &amp;#x26; \ddots &amp;#x26; \vdots \\
+\frac{\partial y_{D_1}}{\partial x_1} &amp;#x26; \frac{\partial y_{D_1}}{\partial x_2} &amp;#x26; \cdots &amp;#x26; \frac{\partial y_{D_1}}{\partial x_{D_2}}
+\end{array}\right] = \mathbf{W} \textrm{ (Numerator Layout)}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;矩阵求导的链式法则&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;对于一个函数 $y=f(g(h(x)))$ ，如果我们令 $q=h(x)$ ，$k=g(q)$ ，$y=f(k)$ ，那么根据链式法则，我们先以内层为单位排列（分母表达式，Denominator Layout）可以得到：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\frac{\partial y}{\partial x} = \frac{\partial q}{\partial x} \cdot \frac{\partial k}{\partial q} \cdot \frac{\partial y}{\partial k}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;分子表达式（Numerator Layout）下：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\frac{\partial y}{\partial x} = \frac{\partial y}{\partial k} \cdot \frac{\partial k}{\partial q} \cdot \frac{\partial q}{\partial x}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+&lt;h3&gt;一个例子&lt;/h3&gt;
+&lt;p&gt;对于函数 $y = (\mathbf{A}\mathbf{x}-\mathbf{b})^\top(\mathbf{A}\mathbf{x}-\mathbf{b})$ ，我们可以使用链式法则来计算其导数。&lt;/p&gt;
+&lt;p&gt;其中 $\mathbf{x}\in\mathbb{R}^{D}$，$\mathbf{A}\in\mathbb{R}^{D_1 \times D}$ ，$\mathbf{b}\in\mathbb{R}^{D_1}$ ，$y \in \mathbb{R}$ 。&lt;/p&gt;
+&lt;p&gt;令 $\mathbf{z} = \mathbf{A}\mathbf{x} - \mathbf{b}$ ，则有 $y = \mathbf{z}^\top \mathbf{z}$ 。&lt;/p&gt;
+&lt;p&gt;根据链式法则，我们可以得到：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\textrm{ (Denominator Layout)} \\
+\begin{aligned}
+    \frac{\partial y}{\partial \mathbf{x}} &amp;#x26; =\frac{\partial \mathbf{z}}{\partial \mathbf{x}}\cdot\frac{\partial y}{\partial \mathbf{z}} \\ &amp;#x26; =\mathbf{A}^\top\cdot(2\mathbf{z}) \\ &amp;#x26; =2\mathbf{A}^\top(\mathbf{A}\mathbf{x}-\mathbf{b})
+\end{aligned}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\textrm{ (Numerator Layout)} \\
+\begin{aligned}
+    \frac{\partial y}{\partial \mathbf{x}} &amp;#x26; =\frac{\partial y}{\partial \mathbf{z}}\cdot\frac{\partial \mathbf{z}}{\partial \mathbf{x}} \\ &amp;#x26; =2\mathbf{z}^\top\cdot\mathbf{A} \\ &amp;#x26; =2(\mathbf{A}\mathbf{x}-\mathbf{b})^\top\cdot\mathbf{A}
+\end{aligned}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;显然 $(2(\mathbf{A}\mathbf{x}-\mathbf{b})^\top\cdot\mathbf{A})\top = 2\mathbf{A}^\top(\mathbf{A}\mathbf{x}-\mathbf{b})$ 。&lt;/p&gt;
+&lt;p&gt;在分母表达式下 $2\mathbf{A}^\top(\mathbf{A}\mathbf{x}-\mathbf{b})$ 的形状是 $2\times \mathbb{R}^{D \times D_1} \times (\mathbb{R}^{D_1 \times D} \times \mathbb{R}^{D \times 1} - \mathbb{R}^{D_1 \times 1}) = \mathbb{R}^{D_1 \times 1}$ ，即为长度为 $D_1$ 的列向量。&lt;/p&gt;
+&lt;h2&gt;含有Layer Norm的矩阵求导&lt;/h2&gt;
+&lt;p&gt;在深度学习中，Layer Norm（层归一化）是一个常用的技术，它在特征维度上进行归一化处理。&lt;/p&gt;
+&lt;p&gt;先假设输入是一个矩阵 $\mathbf{X} \in \mathbb{R}^{m \times n}$ ，其中 $m$ 是样本数量，$n$ 是特征数量。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;对于每个样本，计算每个样本的均值和标准差：
+&lt;ul&gt;
+&lt;li&gt;均值：$\mu_i = \frac{1}{n} \sum_{j=1}^{n} x_{ij}$&lt;/li&gt;
+&lt;li&gt;标准差：$\sigma_i^2 = \frac{1}{n} \sum_{j=1}^{n} (x_{ij} - \mu_i)^2$&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;对每个样本进行归一化处理：
+&lt;ul&gt;
+&lt;li&gt;归一化：$\hat{x}&lt;em&gt;{ij} = \frac{x&lt;/em&gt;{ij} - \mu_i}{\sqrt{\sigma_i^2 + \epsilon}}$&lt;/li&gt;
+&lt;li&gt;其中$\epsilon$是一个小常数，用于防止除以零。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;对归一化后的结果进行缩放和平移：
+&lt;ul&gt;
+&lt;li&gt;平移：$y_{ij} = \gamma \hat{x}_{ij} + \beta$&lt;/li&gt;
+&lt;li&gt;其中 $\gamma$ 和 $\beta$ 是可学习的参数。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3&gt;例子：&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&quot;./exp1.svg&quot; alt=&quot;alt text&quot;&gt;
+输入 $x$ 是一维列向量，长度为 $D$&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\begin{aligned}
+ &amp;#x26; p=Wx \\
+ &amp;#x26; k=\max(p,0) \\
+ &amp;#x26; y=LN(k)=\gamma\odot\frac{k-\mu(k)}{\sqrt{\sigma^2(k)+\xi}}+\beta
+\end{aligned}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;我们可以知道对于第一个式子 $\frac{\partial p}{\partial x} = W^\top$ 。&lt;/p&gt;
+&lt;p&gt;对于第二个式子p，它是一个列向量，它的值为 $\max(p,0)$ ，因此其导数为：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\frac{\partial k}{\partial p} = \begin{cases}
+1 &amp;#x26; \text{if } p &gt; 0 \\
+0 &amp;#x26; \text{if } p \leq 0
+\end{cases}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;一般我们可以将其表示为一个对角矩阵 $diag(\mathbf{1}_{p&gt;0})$，其中对角线上的元素为 $1$ 或 $0$，具体取决于 $p$ 的值。&lt;/p&gt;
+&lt;p&gt;第三个式子就是重头戏了，Layer Norm的导数计算相对复杂，我们假设输入是一个列向量 $k$ ，其均值为 $\mu(k)$ ，标准差为 $\sigma^2(k)$ ，则Layer Norm的导数可以表示为：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;k - \mu(k) = (\mathbf{I} - \frac{1}{D}\mathbf{1}\mathbf{1}^\top)k
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;其中 $\mathbf{1}\mathbf{1}^\top$ 是一个全1的矩阵。$D$的大小是$k$的长度。&lt;/p&gt;
+&lt;p&gt;我们令 $k - \mu(k) = \nu$ ，则有：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\begin{aligned}
+q = \frac{k-\mu(k)}{\sqrt{\sigma^2(k)+\epsilon}} &amp;#x26; =\frac{k-\mu(k)}{\sqrt{\frac{1}{D}\sum_{i=1}^D(k_i-\mu(k))(k_i-\mu(k))+\xi}} \\
+ &amp;#x26; =\frac{\nu}{\sqrt{\frac{1}{D}\sum_{i=1}^{D}\nu_i\nu_i+\xi}} \\
+ &amp;#x26; =\frac{\sqrt{D}\nu}{\sqrt{||\nu||_2^2+D\xi}}
+\end{aligned}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;那么 $\frac{\partial q}{\partial \nu}$ 的雅可比矩阵为：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\frac{\partial q}{\partial \nu} = \frac{\sqrt{D}}{\sqrt{||\nu||_2^2+D\xi}} \cdot (\mathbf{I} - \frac{\nu\nu^\top}{||\nu||_2^2+D\xi})
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;对于 $\mathbf{I} - \frac{\nu\nu^\top}{||\nu||_2^2+D\xi}$我们可以知道如果输入是 $\mathbb{R}^D$ ，那么输出就是 $\mathbb{R}^{D \times D}$ 。而它前面的部分就是一个标量了。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;如果输入 $k$ 的每一维都相等，则$\nu$的所有分量为零，此时 $||\nu||_2^2$ 为零。为了避免这种情况导致分母为零，我们引入了 $\xi$ 作为正则化项，确保计算的稳定性。不加 $\xi$ 的话它就不是Lipschitz连续函数。关于Lipschitz连续后面会单独写一篇文章介绍。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;回到 $y=LN(k)=\gamma\odot\frac{k-\mu(k)}{\sqrt{\sigma^2(k)+\xi}}+\beta$ ，可以重写为：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;y=diag(\gamma)\cdot q+\beta
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;根据链式法则，我们可以得到：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\begin{aligned}
+\frac{\partial y}{\partial k}  &amp;#x26; = \frac{\partial \nu}{\partial k}\cdot\frac{\partial q}{\partial \nu}\cdot\frac{\partial y}{\partial q} \\
+ &amp;#x26; = (\mathbf{I} - \frac{1}{D}\mathbf{1}\mathbf{1}^\top) \cdot \frac{\sqrt{D}}{\sqrt{||\nu||_2^2+D\xi}} \cdot (\mathbf{I} - \frac{\nu\nu^\top}{||\nu||_2^2+D\xi}) \cdot diag(\gamma)
+\end{aligned}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;最终的$\frac{\partial y}{\partial x}$就是：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\frac{\partial y}{\partial x} = \frac{\partial p}{\partial x} \cdot \frac{\partial k}{\partial p} \cdot \frac{\partial y}{\partial k}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;带入相应结果即可。&lt;/p&gt;
+&lt;h2&gt;含有Loss&lt;/h2&gt;
+&lt;p&gt;我们知道神经网络需要计算损失函数（Loss Function）来进行训练。&lt;/p&gt;
+&lt;p&gt;对于下图所示的神经网络，我们可以使用链式法则来计算损失函数对输入的导数。
+&lt;img src=&quot;./exp2.svg&quot; alt=&quot;alt text&quot;&gt;
+该神经网络有两个linear层，紧跟其后的是Softmax层和Cross Entropy Loss层。&lt;/p&gt;
+&lt;p&gt;在前向计算过程中我们要计算&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\begin{aligned}
+    &amp;#x26; \mathbf{y} = W_1 \mathbf{x} \\
+    &amp;#x26; \mathbf{h} = W_2 \mathbf{y} \\
+    &amp;#x26; \mathbf{p} = \textrm{Softmax}(\mathbf{h}) \\
+    &amp;#x26; \mathcal{L} = \textrm{CrossEntropy}(\mathbf{p}, \mathbf{t})
+\end{aligned}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Softmax和CrossEntropy没有参数，实际上我们只需要计算两个线性层的导数。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;注意这里的$\mathbf{t}$是一个one-hot编码的向量，表示真实标签。对于Softmax层和CrossEntropy层导数推导如下：&lt;/p&gt;
+&lt;p&gt;Softmax函数定义为：$\mathbf{p}_i = \frac{e^{\mathbf{h}&lt;em&gt;i}}{\sum&lt;/em&gt;{j} e^{\mathbf{h}_j}}$
+导数为：$$\frac{\partial \mathbf{p}}{\partial \mathbf{h}} = \textrm{diag}(\mathbf{p}) - \mathbf{p} \mathbf{p}^\top$$
+$\textrm{diag}(\mathbf{p})$ 是一个对角矩阵，主对角线是 $(\mathbf{p})$ 的元素。&lt;/p&gt;
+&lt;p&gt;CrossEntropy Loss定义为：$\mathcal{L} = -\sum_{i} \mathbf{t}_i \log(\mathbf{p}_i)$
+导数为：$$\frac{\partial \mathcal{L}}{\partial \mathbf{p}} = -\frac{\mathbf{t}}{\mathbf{p}}$$&lt;/p&gt;
+&lt;p&gt;根据链式法则，我们可以得到：$\frac{\partial \mathcal{L}}{\partial \mathbf{h}} = \mathbf{p} - \mathbf{t}$&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\begin{aligned}
+    &amp;#x26; \frac{\partial \mathcal{L}}{\partial \mathbf{h}} = \frac{\partial \mathbf{p}}{\partial \mathbf{h}} \cdot \frac{\partial \mathcal{L}}{\partial \mathbf{p}} = \underbrace{\mathbf{p} - \mathbf{t}}_{\mathbb{R^C}} \\
+    &amp;#x26; \frac{\partial \mathcal{L}}{\partial \mathbf{W_2}} = \underbrace{\frac{\partial \mathcal{L}}{\partial \mathbf{h}}}_{\mathbb{R^{C \times 1}}} \cdot \underbrace{\mathbf{y}^\top}_{\mathbb{R^{1 \times D_1}}} \\
+    &amp;#x26; \frac{\partial \mathcal{L}}{\partial \mathbf{y}} =  \underbrace{W_2^\top}_{\mathbb{R^{D_1 \times C}}} \cdot \underbrace{\frac{\partial \mathcal{L}}{\partial \mathbf{h}}}_{\mathbb{R^{C \times 1}}} \\
+    &amp;#x26; \frac{\partial \mathcal{L}}{\partial \mathbf{W_1}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \cdot \mathbf{x}^\top
+\end{aligned}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;从泰勒展开到梯度下降法和牛顿法&lt;/h2&gt;
+&lt;p&gt;在深度学习中，参数更新是通过梯度下降（Gradient Descent）来实现的。我们使用计算得到的梯度来调整模型的参数，以最小化损失函数。&lt;/p&gt;
+&lt;p&gt;而在这之前，必须先来讲讲泰勒展开（Taylor Expansion）。&lt;/p&gt;
+&lt;p&gt;对于多元函数 $f(\mathbf{x}): \mathbb{R}^n \to \mathbb{R}$（例如损失函数），在点 $\mathbf{a}$ 处的泰勒展开为：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;f(\mathbf{x}) \approx f(\mathbf{x_0}) + \nabla f(\mathbf{x_0})^T(\mathbf{x}-\mathbf{x_0}) + \frac{1}{2}(\mathbf{x}-\mathbf{x_0})^T \mathbf{H}(\mathbf{x_0}) (\mathbf{x}-\mathbf{x_0}) + \cdots
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;其中，$\mathbf{H}$ 是海森矩阵（Hessian Matrix），表示二阶导数信息。&lt;/p&gt;
+&lt;p&gt;在深度学习中，我们通常只使用到一阶泰勒展开，即：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;f(\mathbf{x}) \approx f(\mathbf{x_0}) + \nabla f(\mathbf{x_0})^T(\mathbf{x}-\mathbf{x_0})
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;通常优化条件下，我们希望找到一个 $\mathbf{x}$ 使得 $f(\mathbf{x})$ 最小化。根据一阶泰勒展开，此时 $f(\mathbf{x}) \leq f(\mathbf{x_0})$ 。那么我们只需要确保迭代之前的 $\nabla f(\mathbf{x_0})^T(\mathbf{x}-\mathbf{x_0})$ 项小于零即可。这又可以导出 $\nabla f(\mathbf{x_0})^T(\mathbf{x}-\mathbf{x_0}) &amp;#x3C; 0$ 。&lt;/p&gt;
+&lt;p&gt;那么就有 $\mathbf{x} - \mathbf{x_0} = -\alpha \nabla f(\mathbf{x_0})$ ，即&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\mathbf{x} = \mathbf{x_0} - \alpha \nabla f(\mathbf{x_0}) \quad \textrm{(Gradient Descent)}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;最后会下降到梯度为零的点。那么 $\nabla f(\mathbf{x}) = 0$ 。&lt;/p&gt;
+&lt;p&gt;自然我们对上面的泰勒展开进行一次求导，得到：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-math&quot;&gt;\nabla f(\mathbf{x}) \approx 0 + \nabla f(\mathbf{x_0}) + \mathbf{H}(\mathbf{x_0})(\mathbf{x}-\mathbf{x_0}) = 0 \\
+\mathbf{H}(\mathbf{x_0})(\mathbf{x}-\mathbf{x_0}) = -\nabla f(\mathbf{x_0}) \\
+\mathbf{x} = \mathbf{x_0} - \mathbf{H}(\mathbf{x_0})^{-1} \nabla f(\mathbf{x_0}) \quad \textrm{(Newton&apos;s Method)}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2&gt;拓展部分&lt;/h2&gt;
+&lt;p&gt;我们讲的内容都是为了接下来的自动微分服务。&lt;/p&gt;
+&lt;p&gt;现代的深度学习框架（如TensorFlow和PyTorch）已经实现了自动微分（Automatic Differentiation），使得我们可以轻松地计算复杂模型的梯度，而无需手动推导每个步骤。
+自动微分通过构建计算图（Computation Graph）来跟踪所有的操作，并在反向传播（Backpropagation）过程中自动计算梯度。这大大简化了深度学习模型的训练过程，使得研究人员和工程师能够专注于模型设计和优化，而不必担心复杂的数学推导。&lt;/p&gt;
+&lt;p&gt;自动微分有前向模式（Forward Mode）和反向模式（Reverse Mode）两种主要实现方式。前向模式适用于输入维度较小的情况，而反向模式（常说的反向传播）则更适合深度学习中的大规模模型，因为它能够高效地计算标量输出相对于大量参数的梯度。&lt;/p&gt;</content:encoded><h:img src="undefined"/><enclosure url="undefined"/></item><item><title>TAAC七日游</title><link>https://pd-ch.github.io/blog/2025-07-31-taac-participate-record</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2025-07-31-taac-participate-record</guid><description>TAAC比赛的参赛记录</description><pubDate>Wed, 31 Jul 2024 00:00:00 GMT</pubDate><content:encoded>&lt;h1&gt;TAAC七日游&lt;/h1&gt;
+&lt;p&gt;本文记录了我在TAAC（腾讯广告算法大赛）比赛中的参赛经历和心得体会。&lt;/p&gt;
+&lt;p&gt;2025年7月31日，在比赛报名截止的六小时前本人于一个交流群中得知了TAAC比赛，并决定报名参加。&lt;/p&gt;
+&lt;h2&gt;7.31 报名&amp;#x26;搜集一些基础信息&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&quot;https://mp.weixin.qq.com/s/mAVOICmMOay_Axcr0IN4PA&quot;&gt;学长深度访谈直播实录&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://mp.weixin.qq.com/s/xz0kb-xjCOy_A0k_gYwKeg&quot;&gt;一文读懂算法大赛前沿赛题&lt;/a&gt;
+介绍了数据集形式、基线模型的思路、优化升级思路、embedding分析工具。&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://docs.qq.com/slide/DVExWdWFjd0t2bXpX&quot;&gt;腾讯自有Angel算法学习平台使用指引&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;基本上有价值的信息都在这三篇文章中。以及主办方提供了三篇论文作为参考。&lt;/p&gt;
+&lt;h3&gt;A Review of Modern Recommender Systems Using Generative Models (Gen-RecSys)&lt;/h3&gt;
+&lt;p&gt;第一篇是个综述，使用苏剑林老师的papers.cool网站进行检索和&lt;a href=&quot;https://papers.cool/arxiv/2404.00579&quot;&gt;快速阅读&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;这篇综述将现代生成式推荐系统（Gen-RecSys）分为三大类模型：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;仅依赖用户-物品交互的模型&lt;/strong&gt;：如 VAE-CF、BERT4Rec、SASRec、IRGAN、DiffRec、GFN4Rec 等。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;以文本为核心的 LLM 驱动模型&lt;/strong&gt;：包括用于稠密检索的 BERT/T5、零样本/少样本提示的 GPT 系列、指令微调后的 P5/TALLRec，以及检索增强的 RAG 框架。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;多模态模型&lt;/strong&gt;：如 CLIP/ALBEF（图文对比）、ContrastVAE（多模态 VAE）、Stable-Diffusion/DALL-E（图像生成）、以及 LLaVA 等多模态大模型。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;未来改进方向集中在：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提升 RAG 的多源数据融合与端到端训练&lt;/li&gt;
+&lt;li&gt;设计工具增强的主动对话推荐架构&lt;/li&gt;
+&lt;li&gt;借助扩散模型实现个性化虚拟试穿等内容生成&lt;/li&gt;
+&lt;li&gt;开展对抗红队测试以保证鲁棒性&lt;/li&gt;
+&lt;li&gt;建立兼顾性能、公平、隐私与社会影响的统一评估框架&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Recommender Systems with Generative Retrieval&lt;/h3&gt;
+&lt;p&gt;第二篇论文是谷歌于2023年在NIPS上发表的论文，介绍了一个名为 TIGER 的推荐系统模型。&lt;a href=&quot;https://papers.cool/arxiv/2305.05065&quot;&gt;快速阅读&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;TIGER 的主要流程如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;编码商品内容&lt;/strong&gt;：先用 RQ-VAE 把每件商品的内容向量压缩成 4 个离散语义码（Semantic ID）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;序列建模&lt;/strong&gt;：用 Transformer encoder-decoder，将用户的历史商品序列（用这些语义码表示）作为输入，自回归地逐 token 生成下一个商品的语义码。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;训练与推理&lt;/strong&gt;：训练时仅做最大似然估计；在线推理时无需 ANN 索引，直接在 Transformer 的 memory 里做 beam search 解码即可获得候选。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;后续改进可沿三条主线：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;效率&lt;/strong&gt;：改用低秩 KV-cache、前缀树约束或知识蒸馏加速解码。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;冷启与长尾&lt;/strong&gt;：将文本/图像等多模态编码器与 RQ-VAE 联合训练，或引入对比学习让未见商品的语义码更具判别性。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;可控多样性&lt;/strong&gt;：在层级语义码上加入可学习温度或强化学习奖励，以平衡相关性与新颖性。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3&gt;Actions Speak Louder than Words: Trillion-Parameter Sequential Transducers for Generative Recommendations&lt;/h3&gt;
+&lt;p&gt;第三篇论文是Meta于2024年在ICML上发表的论文，介绍了一个名为 HSTU（Hierarchical Sequential Transduction Units） 的推荐系统模型。&lt;a href=&quot;https://papers.cool/arxiv/2402.17152&quot;&gt;快速阅读&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;这篇论文提出了生成推荐模型（Generative Recommenders, GRs）及其核心编码器 HSTU（Hierarchical Sequential Transduction Units），首次将工业级推荐系统统一建模为序列转换任务。&lt;/p&gt;
+&lt;p&gt;HSTU 的主要特点如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;结构简化&lt;/strong&gt;：用单一模块替代传统 DLRM 的“提取-交互-变换”三段式结构。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;编码方式&lt;/strong&gt;：先以线性层投影得到 QKV，再用无 softmax 的点积注意力聚合序列信息，最后经 SwiGLU 式门控输出。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;高效训练&lt;/strong&gt;：训练中采用“生成式”采样，按 1/|sequence| 的概率抽取用户序列，实现 O(N²) 降为 O(N) 的复杂度。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;推理优化&lt;/strong&gt;：通过 Stochastic Length 随机裁剪长序列、M-FALCON 微批次推理与 KV 缓存，在同等 GPU 预算下将推理复杂度摊销 285 倍。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;该范式解决了 DLRM 特征工程繁重、算力扩展停滞、长序列难建模三大难题，在线 A/B 提升 12.4%，并首次在推荐领域验证“模型质量随训练算力呈幂律增长”的 Scaling Law。&lt;/p&gt;
+&lt;p&gt;后续可从以下方向继续改进：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;更长序列建模&lt;/li&gt;
+&lt;li&gt;实时增量更新&lt;/li&gt;
+&lt;li&gt;隐私保护特征&lt;/li&gt;
+&lt;li&gt;跨域迁移&lt;/li&gt;
+&lt;li&gt;冷启动&lt;/li&gt;
+&lt;li&gt;模型压缩与能耗优化&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;8.1 赶路 &amp;#x26; 补习知识&lt;/h2&gt;
+&lt;p&gt;今天大部时间花在了从家到学校的路上，利用这个时间以及到学校后的时间补习了一些知识。&lt;/p&gt;
+&lt;p&gt;本人是推荐系统小白，之前只是听说过协同过滤（CF），但对具体的实现细节并不熟悉。&lt;/p&gt;
+&lt;p&gt;同时今天也开放了比赛平台，下载了数据集和基线模型。然而基线模型只有示例代码（不完整），没有提供预训练模型。&lt;/p&gt;
+&lt;p&gt;基线模型给出的流程是先使用提供的 RQ-VAE 框架代码将多模态emb数据转换为Semantic Id，参照 Item Sparse 特征格式处理Semantic Id，作为新特征加入Baseline模型训练。这一步是为了处理多模态模型和推荐模型之间巨大的gap。~~多模态本身难道没有gap吗（笑）~~&lt;/p&gt;
+&lt;p&gt;目前并不打算开始跑这套流程，先补习一些推荐系统的基础知识。毕竟之前只学习了VAE,RQ-VAE还并不是很清楚它是怎么做的。RQ-VAE的学习只能放到明天了。&lt;/p&gt;
+&lt;p&gt;目前来看，比赛流程大致按照&lt;a href=&quot;https://mp.weixin.qq.com/s/xz0kb-xjCOy_A0k_gYwKeg&quot;&gt;一文读懂算法大赛前沿赛题&lt;/a&gt;中提到的进行即可，主要包括数据预处理、模型训练与评估等环节。对于数据的预处理，主要是将多模态数据转换为 Semantic Id，并将其作为新的特征加入到模型中。剩下的模型选取则比较随便了，或许可以使用Muon优化器替代Adam优化器。&lt;/p&gt;
+&lt;p&gt;全模态生成式推荐系统的核心在于如何将用户的历史行为和商品的特征进行有效的建模，以生成个性化的推荐结果。next token prediction和next item prediction也没有本质上的差别，都是seq2seq任务。只是掺入更多的模态和时序因素会非常难处理。&lt;/p&gt;
+&lt;h2&gt;8.2 RQ-VAE学习&lt;/h2&gt;
+&lt;p&gt;今天主要学习了 RQ-VAE 的相关知识，了解了其基本原理和实现方式。&lt;/p&gt;
+&lt;p&gt;对于普通的 VAE 我们假设后验分布是高斯分布，很显然它是连续的，而 RQ-VAE 则假设后验分布是离散的。非常合适用在这里为 embedding 生成离散的语义码（Semantic ID）。仅仅对于离散的语义码，来说 17 年提出的 VQ-VAE（Vector Quantized Variational Autoencoder）方法就足够了。&lt;/p&gt;
+&lt;p&gt;VQ-VAE 通过引入向量量化（Vector Quantization）技术，将连续的潜在空间离散化，从而实现对离散语义码的建模。&lt;/p&gt;
+&lt;h3&gt;VQ-VAE 详解&lt;/h3&gt;
+&lt;p&gt;VQ-VAE（Vector Quantized Variational Autoencoder，向量量化变分自编码器）是一种结合了自编码器和离散表示学习的方法，主要用于将连续的潜在空间映射为有限集合的离散向量（即“码本”中的向量）。其核心思想如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;结构组成&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;编码器（Encoder）：将输入数据（如图片、音频、embedding等）编码为连续的潜在向量。&lt;/li&gt;
+&lt;li&gt;向量量化（Vector Quantization）：将编码器输出的连续向量，查找最近的码本向量（codebook embedding），并用该离散向量替换原始输出，实现离散化。&lt;/li&gt;
+&lt;li&gt;解码器（Decoder）：将离散化后的向量还原为原始数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;训练目标&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;重构损失：保证解码器输出与原始输入尽可能接近。&lt;/li&gt;
+&lt;li&gt;向量量化损失：鼓励编码器输出靠近码本中的某个向量。&lt;/li&gt;
+&lt;li&gt;承载损失（commitment loss）：防止编码器输出频繁跳变，保证稳定性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;典型流程&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;输入数据 → 编码器 → 连续潜在向量 → 向量量化（查找最近码本向量）→ 离散向量 → 解码器 → 重构输出。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;向量量化过程详解&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;编码器输出一个连续的潜在向量 $z_e$，然后在码本（codebook）${e_k}$ 中查找与 $z_e$ 欧氏距离最近的向量 $e_{k^&lt;em&gt;}$，即 $k^&lt;/em&gt; = \arg\min_k |z_e - e_k|_2$。&lt;/li&gt;
+&lt;li&gt;用 $e_{k^*}$ 替换 $z_e$ 作为离散化后的表示，输入给解码器。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;向量量化的梯度更新&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;由于最近邻查找是不可微的，VQ-VAE 采用“直通估计器（Straight-Through Estimator, STE）”来实现反向传播：
+&lt;ul&gt;
+&lt;li&gt;前向传播时，编码器输出被替换为最近的码本向量。&lt;/li&gt;
+&lt;li&gt;反向传播时，梯度直接从解码器输出传递回编码器输入，跳过量化操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;码本向量的更新则通过最小化 $|\text{sg}[z_e] - e_k|_2^2$（sg 表示 stop-gradient）来实现，即只对码本参数求梯度，不对编码器参数求梯度。&lt;/li&gt;
+&lt;li&gt;同时引入 commitment loss $\beta |z_e - \text{sg}[e_{k^*}]|_2^2$，鼓励编码器输出靠近被选中的码本向量。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;这种机制保证了模型可以端到端地训练，既能学习到高效的离散表示，又能保持训练过程的稳定性。&lt;/p&gt;
+&lt;p&gt;VQ-VAE 的提出为后续如 RQ-VAE 等模型的发展奠定了基础，尤其在需要将连续特征离散化为语义码的任务中表现突出。&lt;/p&gt;
+&lt;p&gt;但 VQ-VAE 的局限在于对连续特征的表达能力有限，因此 RQ-VAE 在其基础上引入了重参数化技巧，使模型能够同时建模离散语义码与连续特征。&lt;/p&gt;
+&lt;h3&gt;RQ-VAE 详解&lt;/h3&gt;
+&lt;p&gt;RQ-VAE（Residual Quantized Variational Autoencoder，残差量化变分自编码器）是在 VQ-VAE 基础上的改进模型，旨在提升对复杂分布和连续特征的表达能力。其主要创新点和改进如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;多级残差量化（Residual Quantization）&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RQ-VAE 不再只用一级码本对编码器输出进行量化，而是采用多级残差量化。即：
+&lt;ul&gt;
+&lt;li&gt;第一级用码本 $C_1$ 对编码器输出 $z_e$ 进行量化，得到 $q_1$。&lt;/li&gt;
+&lt;li&gt;第二级用码本 $C_2$ 对残差 $r_2 = z_e - q_1$ 进行量化，得到 $q_2$。&lt;/li&gt;
+&lt;li&gt;依此类推，最终离散表示为 $q_1 + q_2 + ... + q_n$。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;这种方式能更细致地逼近原始连续特征，提升表达能力。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;连续与离散特征的结合&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RQ-VAE 通过多级残差量化，使得每一级都能捕捉不同粒度的信息，既保留了离散语义码的优势，又能更好地拟合连续特征。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;重参数化技巧&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在训练过程中，RQ-VAE 引入了重参数化技巧，使得量化过程对编码器参数可微分，进一步提升了模型的可训练性和稳定性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;优势与应用&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RQ-VAE 能够生成更高质量、更具判别性的离散语义码，适用于多模态特征融合、推荐系统、生成建模等场景。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;与 VQ-VAE 的对比&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;VQ-VAE 只能用单一离散码本近似连续特征，表达能力有限。&lt;/li&gt;
+&lt;li&gt;RQ-VAE 通过多级残差量化和重参数化，显著提升了对复杂分布和连续特征的建模能力。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;综上，RQ-VAE 通过多级残差量化和重参数化技巧，实现了离散与连续特征的有机结合，是 VQ-VAE 的重要升级。&lt;/p&gt;
+&lt;p&gt;明日再写代码，在云端环境中进行实验。已经有人提交评测了，得抓紧时间了。&lt;/p&gt;
+&lt;h2&gt;8.14 实验记录&lt;/h2&gt;
+&lt;p&gt;补全了rqvae缺失的代码，跑起了实验，效果非常拉胯。&lt;/p&gt;
+&lt;p&gt;主要是rqvae训练速度尚可，baseline model效果则是非常糟糕。一个step的时间需要4分钟，而一个epoch则需要一千个step。根本就是不可接受的。&lt;/p&gt;
+&lt;p&gt;需要排查问题，加速训练过程，优化权重保存逻辑。&lt;/p&gt;
+&lt;h2&gt;8.23 反思&lt;/h2&gt;
+&lt;p&gt;实验停了，这几天没干什么，感觉有些迷茫。需要重新理清思路，找回状态。&lt;/p&gt;
+&lt;p&gt;现在想清楚了，对于整个训练流程换了一种思路。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;首先需要训练一个RQ-VAE模型，确保其能够有效地对输入数据进行编码和解码。&lt;/li&gt;
+&lt;li&gt;在RQ-VAE模型训练完成后，利用其生成的离散语义码作为新特征，加入到推荐系统的训练中。这个过程可以单独拿出来不需要和baseline模型训练一起进行，训练得到的权重需要放到USER_CACHE_PATH中，方便后续baseline模型训练调用；或者如果物品的品类有限，可以考虑将物品的Semantic IDs也放到USER_CACHE_PATH中。&lt;/li&gt;
+&lt;li&gt;通过这种方式，可以有效地缩小多模态模型与推荐模型之间的差距，提高推荐效果。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;9.4 重启&lt;/h2&gt;
+&lt;p&gt;八月末忙着补考，补考完了还有个仓库的代码需要修改，当然中间也放松了几天，一直拖到现在。当务之急是抓紧时间做出成绩，基本上已经没有时间进行参数优化和更多的迭代了。&lt;/p&gt;
+&lt;h3&gt;下面是这几天的记录&lt;/h3&gt;
+&lt;p&gt;| 日期 | 内容                                                                                                            |
+| ---- | --------------------------------------------------------------------------------------------------------------- |
+| 9.7  | 时隔三十七天终于完成了baseline： Score: 0.0214127 NDCG@10: 0.0164562 HitRate@10: 0.0324451                      |
+| 9.8  | 以及直接用到mm_emb_id 82上的结果：Score: 0.0231574 NDCG@10: 0.0176182 HitRate@10: 0.0354865                     |
+| 9.9  | 完成了RQ-VAE的训练，同时向baseline训练中引入                                                                    |
+| 9.10 | 测试9.9完成的工作，在mm_emb_id 81上进行测试Score: 0.0197788 NDCG@10: 0.0152141 HitRate@10: 0.0299388 效果不乐观 |&lt;/p&gt;
+&lt;h3&gt;线上分享资料&lt;/h3&gt;
+&lt;p&gt;刚刚又翻看了一下比赛新闻以及小红书上比赛相关话题，发现有一些新的进展和动态，可能会对后续的工作有所启发。&lt;/p&gt;
+&lt;h4&gt;1. 比赛新闻&lt;/h4&gt;
+&lt;p&gt;&lt;a href=&quot;https://mp.weixin.qq.com/s/yzqPYYm0Ybf8_6A-IlIYBQ&quot;&gt;Angel平台&amp;#x26;GPU虚拟化技术全解析｜赛期进阶攻略第1期&lt;/a&gt;
+主要是介绍了Angel平台的使用方法和GPU虚拟化技术，帮助参赛者更好地利用平台资源进行模型训练和调优。&lt;/p&gt;
+&lt;h4&gt;2. 小红书话题&lt;/h4&gt;
+&lt;h5&gt;Ado&lt;/h5&gt;
+&lt;ol&gt;
+&lt;li&gt;数据中的序列是曝光序列（Action type 0是曝光，1是点击）需要预测的是点击序列&lt;/li&gt;
+&lt;li&gt;扩充负样本，随机采样即可，通过in batch negative计算loss&lt;/li&gt;
+&lt;li&gt;| 方法                      | score       |
+| ------------------------- | ----------- |
+| baseline                  | 0.025       |
+| baseline + triple loss    | 0.028       |
+| 增加infonce loss，去掉bce | 0.048       |
+| 增加epoch到5              | 0.051       |
+| 重构训练，调整参数和结构  | 0.067-0.068 |&lt;/li&gt;
+&lt;li&gt;infonce需要让正样本相似度比负样本高，计算正样本相似度：seq_embs和pos_embs的点积；负样本选择in batch negative，选择batch内所有的neg_embs但基于曝光偏差问题不包括其它sample的pos_embs，整体neg全为随机负样本。&lt;/li&gt;
+&lt;li&gt;对padding item做mask,不计算其loss&lt;/li&gt;
+&lt;li&gt;正样本位置在拼接后为0，即交叉熵label为0&lt;/li&gt;
+&lt;li&gt;温度系数按经验为0.07&lt;/li&gt;
+&lt;li&gt;| 方法                       | score       |
+| -------------------------- | ----------- |
+| test修复最后一个item被截断 | 0.077       |
+| 加入时间特征               | 0.084       |
+| scaling up至128+hstu+全量  | 0.084-0.094 |&lt;/li&gt;
+&lt;li&gt;baseline加prenorm，rmsnorm，调整transformer参数layer4，head4，dim64（早期调整）&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h5&gt;唐今里&lt;/h5&gt;
+&lt;ol&gt;
+&lt;li&gt;| 方法描述                                                                                                 | 指标值 |
+| -------------------------------------------------------------------------------------------------------- | ------ |
+| baseline                                                                                                 | 0.025  |
+| baseline + BCE + 负采样                                                                                  | 0.035  |
+| BCE换InfoNCE                                                                                             | 0.045  |
+| 模型参数scale up                                                                                         | 0.053  |
+| 分离user和item的数据处理和读取，修改多进程数据加载，PyTorch重写faiss检索，单卡训练20min/epoch，推理10min | -      |
+| 修改Embedding初始化                                                                                      | 0.057  |
+| 增加负样本数量                                                                                           | 0.059  |
+| 增加更多LayerNorm                                                                                        | 0.061  |
+| Transformer改成pre-norm结构                                                                              | 0.064  |
+| 降低temperature                                                                                          | 0.066  |
+| 增加dropout &amp;#x26; epoch数从3减少到2                                                                          | 0.069  |&lt;/li&gt;
+&lt;li&gt;训练加速思路：
+&lt;img src=&quot;./1.jpg&quot; alt=&quot;image&quot;&gt;&lt;/li&gt;
+&lt;li&gt;推理加速思路：
+&lt;img src=&quot;./2.jpg&quot; alt=&quot;image&quot;&gt;
+将faiss替换成faiss-gpu或者pytorch实现，单卡推理10min&lt;/li&gt;
+&lt;li&gt;baseline测试阶段的数据构造有问题，只取seq[:-1]不合理&lt;/li&gt;
+&lt;li&gt;InfoNCE还可以优化改进，核心是提升召回能力&lt;/li&gt;
+&lt;li&gt;模型参数scale up 提升显著&lt;/li&gt;
+&lt;li&gt;user 和 item embedding初始化，zero init 可以提供不少涨幅&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h5&gt;AKFrames&lt;/h5&gt;
+&lt;p&gt;这是9.12补充。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;baseline的结构上加入layernorm和dropout，变成四连，然后做残差变为三层mlp，这个掉点千7（logits在1000步内迅速从9跌到-3，并开始持续震荡，目前还没研究明白是因为什么，同时伴随正样本相似度也下降，感觉模型把正负样本都推开导致的）&lt;/li&gt;
+&lt;li&gt;线下和线上的一些分析，把苗头指向layernorm和dropout，与g老师的一通交流让我选择通过指标来观测模型，而不是靠瞎猜。线下的实验指向layernorm，线上的实验在更大数据集上指向了dropout，通过对logits的分析，促使我去掉了dropout，结构变为堆叠两层。logits下降正常，最后验证集loss从2.8降低到2.75。但是测试集掉千一，因为无法得到测试集gt做进一步分析，于是放弃这条路。&lt;/li&gt;
+&lt;li&gt;两线性夹激活，logits上升，valid loss轻微上升，但是正负相似度的差距比之前高，没有机会测，判断为寄。&lt;/li&gt;
+&lt;li&gt;不同维度两线性夹激活，先到512，再到256，取代原本的两层256，模型效果从验证集loss来看甚至低一些，logits上升，测评有限的情况下没测，奥卡姆剃刀原则让我放弃这种复杂结构。这一版看起来是比上面是要好的，正负样本相似度也拉开了。&lt;/li&gt;
+&lt;li&gt;转战dcn，因为觉得走加深走不通，开始走交叉，这一步是做特征的n+1阶交叉，可惜loss上升，logits也变得古怪，大约5000步才降低到0。最后val loss略微增加。没测。&lt;/li&gt;
+&lt;li&gt;在推理时直接统计测试集的流行度分布，把item分成四部分（我随意分的，还有更细致的做法），热门物品前10%，40%普通物品，50%冷门物品，以及冷启动item，这边统计大概1/6的冷启动item。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;现在需要消化吸收这些信息，结合自己的实验结果进行分析和改进。&lt;/p&gt;
+&lt;p&gt;实际上现在需要进行艰难的抉择了，是继续使用BaselineModel还是使用HSTU模型。&lt;/p&gt;
+&lt;h2&gt;9.11 HSTU模型&lt;/h2&gt;
+&lt;p&gt;很遗憾昨天对baseline进行魔改+scale up,训练倒是可以跑通，但是infer超时，每次都是在构建HNSW索引时卡住，尝试了多种方法都无法解决这个问题。&lt;/p&gt;
+&lt;p&gt;今天尝试使用HSTU，祝我好运吧。&lt;/p&gt;
+&lt;h2&gt;9.12 💊&lt;/h2&gt;
+&lt;p&gt;魔改baseline仍然无法评测，准备放弃。&lt;/p&gt;
+&lt;p&gt;至于HSTU，也是获得了一个幽默至极的结果：Score: 0.0117385 NDCG@10: 0.0088995 HitRate@10: 0.0180577，训练时这些指标看着都非常好，但是一上测试就拉胯成这样。&lt;/p&gt;
+&lt;h2&gt;9.13 and 14&lt;/h2&gt;
+&lt;p&gt;完结，名次大概1k+了，完全失败。&lt;/p&gt;
+&lt;h2&gt;经验教训&lt;/h2&gt;
+&lt;p&gt;比赛本身还是很有趣的，可惜我是在最后一周才意识到。&lt;/p&gt;
+&lt;p&gt;惨败实际上还是本人能力有限所致。&lt;/p&gt;
+&lt;p&gt;平台比较难用，调试困难导致迭代困难。&lt;/p&gt;
+&lt;p&gt;参加比赛一定要利用好每一分每一秒。&lt;/p&gt;</content:encoded><h:img src="undefined"/><enclosure url="undefined"/></item><item><title>Intel A770 GPU深度学习环境搭建（Linux）</title><link>https://pd-ch.github.io/blog/2024-06-28-a770_deeplearning_env_setup</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2024-06-28-a770_deeplearning_env_setup</guid><description>Intel A770 GPU在Linux系统下的深度学习环境搭建指南</description><pubDate>Fri, 28 Jun 2024 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;import { Aside } from &apos;astro-pure/user&apos;&lt;/p&gt;
+&lt;h2&gt;step 1 安装GPU驱动&lt;/h2&gt;
+&lt;p&gt;前往&lt;a href=&quot;https://dgpu-docs.intel.com/driver/client/overview.html#ubuntu-latest&quot;&gt;Intel GPU驱动网站&lt;/a&gt;，安装驱动。&lt;/p&gt;
+&lt;h2&gt;step 2 安装PyTorch&lt;/h2&gt;
+&lt;p&gt;我选择的是使用pip进行安装。你可以先使用conda创建一个虚拟环境。&lt;/p&gt;
+&lt;p&gt;安装命令&lt;/p&gt;
+&lt;p&gt;release Version&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-shell&quot;&gt;pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/xpu
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;nightly Version&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-shell&quot;&gt;pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/xpu
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;完成后进行测试。&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-shell&quot;&gt;python -c &quot;import torch; print(torch.__version__); [print(f&apos;[{i}]: {torch.xpu.get_device_properties(i)}&apos;) for i in range(torch.xpu.device_count())];&quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;最后成功识别到显卡即为安装成功。&lt;/p&gt;
+&lt;p&gt;前往&lt;a href=&quot;https://docs.pytorch.org/docs/stable/notes/get_start_xpu.html#examples&quot;&gt;example&lt;/a&gt;进行愉快的玩耍吧。&lt;/p&gt;
+&lt;h2&gt;step 3 安装intel-gpu-tools。&lt;/h2&gt;
+&lt;p&gt;安装intel-gpu-tools可以帮助你更好地监控和管理Intel GPU。&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-shell&quot;&gt;sudo apt install intel-gpu-tools
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;安装完成后，你可以使用以下命令查看GPU状态：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-shell&quot;&gt;sudo intel_gpu_top
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;来查看GPU的使用情况。&lt;/p&gt;</content:encoded><h:img src="undefined"/><enclosure url="undefined"/></item><item><title>深度学习中的数学</title><link>https://pd-ch.github.io/blog/2025-07-14-mathematics-behind-deep-learning</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2025-07-14-mathematics-behind-deep-learning</guid><description>介绍深度学习中常用的数学概念和方法，包括线性代数、概率论、微积分等。</description><pubDate>Mon, 14 Jul 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;import { Aside } from &apos;astro-pure/user&apos;;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;感谢齐宪标老师的精彩讲解和分享。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;本人在研读论文时时常感觉力有不逮，感慨基础不牢地动山摇。深度学习的数学基础是一个重要的方面，本文将介绍一些深度学习中常用的数学概念和方法。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;数字&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$x$：标量&lt;/li&gt;
+&lt;li&gt;$\mathbf{x}$：向量&lt;/li&gt;
+&lt;li&gt;$\mathbf{X}$：矩阵&lt;/li&gt;
+&lt;li&gt;$\mathsf{X}$：张量&lt;/li&gt;
+&lt;li&gt;$\mathbf{I}$：单位矩阵&lt;/li&gt;
+&lt;li&gt;$x_i$, $[\mathbf{x}]_i$：向量$\mathbf{x}$第$i$个元素&lt;/li&gt;
+&lt;li&gt;$x_{ij}$, $[\mathbf{X}]_{ij}$：矩阵$\mathbf{X}$第$i$行第$j$列的元素&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;集合论&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$\mathcal{X}$: 集合&lt;/li&gt;
+&lt;li&gt;$\mathbb{Z}$: 整数集合&lt;/li&gt;
+&lt;li&gt;$\mathbb{R}$: 实数集合&lt;/li&gt;
+&lt;li&gt;$\mathbb{R}^n$: $n$维实数向量集合&lt;/li&gt;
+&lt;li&gt;$\mathbb{R}^{a \times b}$: 包含$a$行和$b$列的实数矩阵集合&lt;/li&gt;
+&lt;li&gt;$\mathcal{A}\cup\mathcal{B}$: 集合$\mathcal{A}$和$\mathcal{B}$的并集&lt;/li&gt;
+&lt;li&gt;$\mathcal{A}\cap\mathcal{B}$：集合$\mathcal{A}$和$\mathcal{B}$的交集&lt;/li&gt;
+&lt;li&gt;$\mathcal{A}\setminus\mathcal{B}$：集合$\mathcal{A}$与集合$\mathcal{B}$相减，$\mathcal{B}$关于$\mathcal{A}$的相对补集&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;函数和运算符&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$f(\cdot)$：函数&lt;/li&gt;
+&lt;li&gt;$\log(\cdot)$：自然对数&lt;/li&gt;
+&lt;li&gt;$\exp(\cdot)$: 指数函数&lt;/li&gt;
+&lt;li&gt;$\mathbf{1}_\mathcal{X}$: 指示函数&lt;/li&gt;
+&lt;li&gt;$\mathbf{(\cdot)}^\top$: 向量或矩阵的转置&lt;/li&gt;
+&lt;li&gt;$\mathbf{X}^{-1}$: 矩阵的逆&lt;/li&gt;
+&lt;li&gt;$\odot$: 按元素相乘&lt;/li&gt;
+&lt;li&gt;$[\cdot, \cdot]$：连结&lt;/li&gt;
+&lt;li&gt;$\lvert \mathcal{X} \rvert$：集合的基数&lt;/li&gt;
+&lt;li&gt;$|\cdot|_p$: ：$L_p$ 正则&lt;/li&gt;
+&lt;li&gt;$|\cdot|$: $L_2$ 正则&lt;/li&gt;
+&lt;li&gt;$\langle \mathbf{x}, \mathbf{y} \rangle$：向量$\mathbf{x}$和$\mathbf{y}$的点积&lt;/li&gt;
+&lt;li&gt;$\sum$: 连加&lt;/li&gt;
+&lt;li&gt;$\prod$: 连乘&lt;/li&gt;
+&lt;li&gt;$\stackrel{\mathrm{def}}{=}$：定义&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;微积分&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$\frac{dy}{dx}$：$y$关于$x$的导数&lt;/li&gt;
+&lt;li&gt;$\frac{\partial y}{\partial x}$：$y$关于$x$的偏导数&lt;/li&gt;
+&lt;li&gt;$\nabla_{\mathbf{x}} y$：$y$关于$\mathbf{x}$的梯度&lt;/li&gt;
+&lt;li&gt;$\int_a^b f(x) ;dx$: $f$在$a$到$b$区间上关于$x$的定积分&lt;/li&gt;
+&lt;li&gt;$\int f(x) ;dx$: $f$关于$x$的不定积分&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;概率与信息论&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$P(\cdot)$：概率分布&lt;/li&gt;
+&lt;li&gt;$z \sim P$: 随机变量$z$具有概率分布$P$&lt;/li&gt;
+&lt;li&gt;$P(X \mid Y)$：$X\mid Y$的条件概率&lt;/li&gt;
+&lt;li&gt;$p(x)$: 概率密度函数&lt;/li&gt;
+&lt;li&gt;${E}_{x} [f(x)]$: 函数$f$对$x$的数学期望&lt;/li&gt;
+&lt;li&gt;$X \perp Y$: 随机变量$X$和$Y$是独立的&lt;/li&gt;
+&lt;li&gt;$X \perp Y \mid Z$: 随机变量$X$和$Y$在给定随机变量$Z$的条件下是独立的&lt;/li&gt;
+&lt;li&gt;$\mathrm{Var}(X)$: 随机变量$X$的方差&lt;/li&gt;
+&lt;li&gt;$\sigma_X$: 随机变量$X$的标准差&lt;/li&gt;
+&lt;li&gt;$\mathrm{Cov}(X, Y)$: 随机变量$X$和$Y$的协方差&lt;/li&gt;
+&lt;li&gt;$\rho(X, Y)$: 随机变量$X$和$Y$的相关性&lt;/li&gt;
+&lt;li&gt;$H(X)$: 随机变量$X$的熵&lt;/li&gt;
+&lt;li&gt;$D_{\mathrm{KL}}(P|Q)$: $P$和$Q$的KL-散度&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;复杂度&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$\mathcal{O}$：大O标记&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://pd-ch.github.io/blog/2025-07-18-the-basics-of-matrix-differentiation-in-deep-learning&quot;&gt;深度学习中的矩阵求导基础&lt;/a&gt;&lt;/p&gt;</content:encoded><h:img src="undefined"/><enclosure url="undefined"/></item><item><title>Linux Pytorch深度学习环境搭建速通</title><link>https://pd-ch.github.io/blog/2024-09-29-my-environment-setup</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2024-09-29-my-environment-setup</guid><description>个人主要使用的配置介绍，留档以便后来可快速配置</description><pubDate>Sun, 29 Sep 2024 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;Step 0. 系统启动盘制作&lt;/h2&gt;
+&lt;p&gt;简单来说，Ventoy是一个制作可启动U盘的开源工具。有了Ventoy你就无需反复地格式化U盘，你只需要把 ISO/WIM/IMG/VHD(x)/EFI 等类型的文件直接拷贝到U盘里面就可以启动了，无需其他操作。你可以一次性拷贝很多个不同类型的镜像文件，Ventoy 会在启动时显示一个菜单来供你进行选择。
+下载地址:&lt;a href=&quot;https://www.ventoy.net/cn/download.html&quot;&gt;https://www.ventoy.net/cn/download.html&lt;/a&gt;
+安装到U盘以后，只需要将iso镜像复制到U盘中即可。个人建议前往镜像站下载操作系统的iso镜像。&lt;/p&gt;
+&lt;p&gt;安装过程因人而异，故此不再赘述。个人比较喜欢Debian，在安装进行到分区这一步时，可以根据个人喜好调整swap大小，后续可以在系统内开启zswap。创建Btrfs主分区，将它的挂载点设置在“/”下。完成安装。(建议使用DVD镜像，选择站点设置时不使用镜像站点则可以跳过软件包更新直接使用DVD镜像自带的包进行安装，避免安装时过多的等待)&lt;/p&gt;
+&lt;p&gt;接着进入系统，切换为root用户，为自己创建的用户添加sudo权限，并进行换源。此处不再赘述。&lt;/p&gt;
+&lt;p&gt;至此，我们的系统就初步配置好了。&lt;/p&gt;
+&lt;h2&gt;Step 1. 终端美化与代理设置&lt;/h2&gt;
+&lt;p&gt;终端个人推荐使用zsh，主题使用powerlevel10k，插件仅需zsh-autosuggestions与zsh-syntax-highlighting即可。
+配置可参照:&lt;a href=&quot;https://www.haoyep.com/posts/zsh-config-oh-my-zsh/&quot;&gt;https://www.haoyep.com/posts/zsh-config-oh-my-zsh/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;代理的设置建议如下
+新建 &lt;strong&gt;~/scripts/proxy.sh&lt;/strong&gt;,并在该脚本文件中复制以下代码,其中hostip和port按需更改:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;#!/bin/sh
+hostip=127.0.0.1
+port=7890
+
+PROXY_HTTP=&quot;http://${hostip}:${port}&quot;
+
+set_proxy(){
+  export http_proxy=&quot;${PROXY_HTTP}&quot;
+  export HTTP_PROXY=&quot;${PROXY_HTTP}&quot;
+
+  export https_proxy=&quot;${PROXY_HTTP}&quot;
+  export HTTPS_proxy=&quot;${PROXY_HTTP}&quot;
+
+  export ALL_PROXY=&quot;${PROXY_SOCKS5}&quot;
+  export all_proxy=${PROXY_SOCKS5}
+
+  git config --global http.https://github.com.proxy ${PROXY_HTTP}
+  git config --global https.https://github.com.proxy ${PROXY_HTTP}
+
+  echo &quot;Proxy has been opened.&quot;
+}
+
+unset_proxy(){
+  unset http_proxy
+  unset HTTP_PROXY
+  unset https_proxy
+  unset HTTPS_PROXY
+  unset ALL_PROXY
+  unset all_proxy
+  git config --global --unset http.https://github.com.proxy
+  git config --global --unset https.https://github.com.proxy
+
+  echo &quot;Proxy has been closed.&quot;
+}
+
+test_setting(){
+  echo &quot;Host IP:&quot; ${hostip}
+  echo &quot;Try to connect to Google...&quot;
+  resp=$(curl -I -s --connect-timeout 5 -m 5 -w &quot;%{http_code}&quot; -o /dev/null www.google.com)
+  if [ ${resp} = 200 ]; then
+    echo &quot;Proxy setup succeeded!&quot;
+  else
+    echo &quot;Proxy setup failed!&quot;
+  fi
+}
+
+if [ &quot;$1&quot; = &quot;set&quot; ]
+then
+  set_proxy
+
+elif [ &quot;$1&quot; = &quot;unset&quot; ]
+then
+  unset_proxy
+
+elif [ &quot;$1&quot; = &quot;test&quot; ]
+then
+  test_setting
+else
+  echo &quot;Unsupported arguments.&quot;
+fi
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;在你的.zshrc或者.bashrc中添加&lt;strong&gt;alias proxy=&quot;source ~/scripts/proxy.sh&quot;&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;使用时只需要在终端输入proxy set;proxy unset;proxy test.&lt;/p&gt;
+&lt;p&gt;至此,终端美化与代理设置就初步完成了&lt;/p&gt;
+&lt;h2&gt;Step 2. 安装NVIDIA驱动&lt;/h2&gt;
+&lt;p&gt;你完全可以&lt;strong&gt;sudo apt install nvidia-driver&lt;/strong&gt;来安装开源驱动
+但是我更推荐安装闭源驱动，如果有内核更新，记得要&lt;strong&gt;sudo apt install linux-headers-$(uname -r)&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;安装 apt GPG keyring 包，目的是获取 GPG 密钥&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;可以到此位置&lt;a href=&quot;https://developer.download.nvidia.com/compute/cuda/repos/&quot;&gt;https://developer.download.nvidia.com/compute/cuda/repos/&lt;/a&gt;浏览具体发行版&lt;/p&gt;
+&lt;p&gt;apt 安装驱动&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;sudo apt update
+sudo apt -y install nvidia-driver cuda-drivers
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;或者&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;sudo apt install nvidia-driver-assistant
+nvidia-driver-assistant
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;此时会给出像下面的指引&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;Detected GPUs:
+  NVIDIA GeForce RTX 4060 Laptop GPU - (pci_id 0x28E0)
+
+Detected system:
+  Debian GNU/Linux 13
+
+Please copy and paste the following command to install the open kernel module flavour:
+  sudo apt-get install -Vy nvidia-open
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;按照指引&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;sudo apt-get install -Vy nvidia-open
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;即可&lt;/p&gt;
+&lt;p&gt;至此,你已经几乎完成了环境的搭建。&lt;/p&gt;
+&lt;h2&gt;Step 3. 安装python环境管理工具&lt;/h2&gt;
+&lt;p&gt;这个看个人品味,我推荐使用miniconda,venv或者mamba.镜像站使用tuna或者bfsu.&lt;/p&gt;
+&lt;p&gt;在此笔者假设读者熟悉上面三种的任意一种。&lt;/p&gt;
+&lt;p&gt;创建完虚拟的环境后,进入虚拟环境对pip进行换源。直接运行。&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-shell&quot;&gt;pip install torch
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果在安装完torch后安装了大量nvidia-*的包,那么就可以放心了,你安装的是pytorch with GPU&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;你已经完成了深度学习环境搭建,立刻开始愉快的学习吧！&lt;/strong&gt;&lt;/p&gt;</content:encoded><h:img src="undefined"/><enclosure url="undefined"/></item><item><title>人工智能基础</title><link>https://pd-ch.github.io/blog/2025-03-09-the-way-to-artificial-intelligence</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2025-03-09-the-way-to-artificial-intelligence</guid><description>介绍目前的深度学习需要学习什么，以及一些比较好的资源</description><pubDate>Sun, 09 Mar 2025 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+&lt;h2&gt;基础技术栈&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;系统&lt;/strong&gt;：Debian（Gnome）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;环境管理&lt;/strong&gt;：venv，pip&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;编程语言&lt;/strong&gt;：Python&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI 框架&lt;/strong&gt;：Pytorch&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;通用计算&lt;/strong&gt;：Jax&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;内容管理工具&lt;/strong&gt;：Git&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;集成开发环境&lt;/strong&gt;：VScode（本地环境）、Jupyterlab（远程环境）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;h2&gt;进阶技术栈&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;编程语言&lt;/strong&gt;：C++（g++、cling，标准=23）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AI 框架&lt;/strong&gt;：Pytorch（AMP，DDP并发）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;环境管理&lt;/strong&gt;：Podman（Devcontainer安装Podman-Docker软件包）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;大数据&lt;/strong&gt;：duckdb（替代pandas）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;构建工具&lt;/strong&gt;：xmake&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;h2&gt;自选方向技术栈&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;原型计算&lt;/strong&gt;： MATLAB&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;云计算&lt;/strong&gt;：K8s（rancher）、KVM、SDS（ceph）、SDN&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;边缘智能&lt;/strong&gt;：TensorRT、onnx&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;高性能AI&lt;/strong&gt;：flax、optax、orbax&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;加速器&lt;/strong&gt;：FPGA（xilinx）、vitis、PCIe&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;注：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;基础技术栈建议在进入方向后3-6个月内完成；&lt;/li&gt;
+&lt;li&gt;进阶技术栈建议在基础学习完后1-2个月内完成；&lt;/li&gt;
+&lt;li&gt;自选方向技术栈仅作为参考，目前阶段无强制要求；&lt;/li&gt;
+&lt;li&gt;使用“/”连接表示可选择其中一种技术，使用“，”仅作为分隔符；&lt;/li&gt;
+&lt;li&gt;WSL2不再推荐，仅作为过渡使用。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;h3&gt;以下推荐一些需要的数学知识&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;a href=&quot;https://www.zhihu.com/column/gs-linear-algebra&quot;&gt;线性代数&lt;/a&gt;&lt;/strong&gt;：介绍了人工智能所需的线性代数基础&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;a href=&quot;https://www.zhihu.com/column/c_1334301979816820736&quot;&gt;机器学习方法&lt;/a&gt;&lt;/strong&gt;：深入介绍机器学习中的一些基础方法&lt;/li&gt;
+&lt;/ul&gt;</content:encoded><h:img src="undefined"/><enclosure url="undefined"/></item><item><title>Clang+Clangd+Xmake使用import std</title><link>https://pd-ch.github.io/blog/2025-05-04-clangclangdxmake-import-std</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2025-05-04-clangclangdxmake-import-std</guid><description>介绍如何使用Clang+Clangd+Xmake启用C++-23新特性&quot;import std&quot;</description><pubDate>Sun, 04 May 2025 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;1. 环境配置&lt;/h2&gt;
+&lt;p&gt;我个人使用的环境是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Debian unstable&lt;/li&gt;
+&lt;li&gt;visual studio code&lt;/li&gt;
+&lt;li&gt;Clang 20.1.5&lt;/li&gt;
+&lt;li&gt;Clangd 20.1.5&lt;/li&gt;
+&lt;li&gt;Xmake 2.9.9&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;1.1 安装llvm全家桶&lt;/h3&gt;
+&lt;p&gt;根据&lt;a href=&quot;https://apt.llvm.org/&quot;&gt;apt.llvm.org&lt;/a&gt;的说明，添加llvm源：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 20 all
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;strong&gt;注意&lt;/strong&gt;：需要有对应的libc++-20-dev包。如果有任何疑问可以使用apt policy libc++-20-dev查看。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;警告&lt;/strong&gt;：如果clang，clangd，与libc++-dev版本对不上，clangd就不能正常工作。&lt;/p&gt;
+&lt;h3&gt;1.2 安装xmake&lt;/h3&gt;
+&lt;p&gt;根据&lt;a href=&quot;https://xmake.io/#/zh-cn/guide/installation&quot;&gt;xmake.io&lt;/a&gt;的说明进行安装：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;wget https://xmake.io/shget.text -O - | bash
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;1.3 VSCode + Clangd + XMake配置&lt;/h3&gt;
+&lt;p&gt;可以参考&lt;a href=&quot;https://zhuanlan.zhihu.com/p/398790625&quot;&gt;[万字长文]Visual Studio Code 配置 C/C++ 开发环境的最佳实践(VSCode + Clangd + XMake)&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;注意&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-json&quot;&gt;{
+  &quot;clangd.arguments&quot;: [&quot;--compile-commands-dir=${workspaceFolder}/.vscode&quot;]
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;需要设置，否则clangd无法找到编译命令。&lt;/p&gt;
+&lt;h2&gt;2. 启用import std&lt;/h2&gt;
+&lt;h3&gt;2.1 配置xmake&lt;/h3&gt;
+&lt;p&gt;在xmake.lua中添加：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-lua&quot;&gt;add_rules(&quot;mode.debug&quot;, &quot;mode.release&quot;)
+add_rules(&quot;plugin.compile_commands.autoupdate&quot;, { outputdir = &quot;./.vscode&quot; })
+
+set_plat(&quot;linux&quot;)
+set_toolchains(&quot;clang&quot;)
+set_runtimes(&quot;c++_static&quot;)
+set_config(&quot;sdk&quot;, &quot;/usr/lib/llvm-20/&quot;)
+
+target(&quot;stdmodules&quot;)
+    set_kind(&quot;binary&quot;)
+    add_files(&quot;*.cpp&quot;)
+    set_languages(&quot;c++23&quot;)
+    set_policy(&quot;build.c++.modules&quot;, true)
+target_end()
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;编写一个简单的程序：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-cpp&quot;&gt;import std;
+
+auto main() -&gt; int {
+    std::println(&quot;Hello, World!&quot;);
+    return 0;
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;此时你的项目结构应该是这样的：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;├── xmake.lua
+└── main.cpp
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;编译：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;xmake
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;产物位于**build/linux/x86_64/release/**目录下。&lt;/p&gt;
+&lt;h2&gt;enjoy it!&lt;/h2&gt;</content:encoded><h:img src="undefined"/><enclosure url="undefined"/></item><item><title>变分自编码器</title><link>https://pd-ch.github.io/blog/2025-03-28-variational-autoencoder</link><guid isPermaLink="true">https://pd-ch.github.io/blog/2025-03-28-variational-autoencoder</guid><description>变分自编码器（VAE）的基础理论与实现</description><pubDate>Fri, 28 Mar 2025 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;论文链接：&lt;a href=&quot;https://papers.cool/arxiv/1312.6114&quot;&gt;🔗&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;由于我个人是做自监督相关的，故本文仅介绍自监督(self-supervised learning,SSL)方面VAE提供了什么。
+~~其实在自监督中我们仅仅用到了VAE，没有用到decoder~~&lt;/p&gt;
+&lt;h2&gt;1. 背景&lt;/h2&gt;
+&lt;p&gt;在自监督学习中，能否利用无标注数据学习数据的隐式表示是很重要的，隐式数据表示的好坏直接决定了后续下游任务表现的上限。&lt;/p&gt;
+&lt;h2&gt;2. VAE提供了什么&lt;/h2&gt;
+&lt;p&gt;变分自编码器（VAE）在自监督学习中的应用主要通过利用无标注数据学习数据的隐式表示，结合生成模型与自监督任务的优势。VAE的编码器将输入数据压缩为低维隐变量分布（通常假设为高斯分布），通过解码器重构数据。隐空间（latent space）的分布特性使其适合作为下游任务的通用特征。&lt;/p&gt;
+&lt;p&gt;VAE是如何将输入压缩到隐空间的呢？或者说它是怎样建模了一个足够好的隐空间？&lt;/p&gt;
+&lt;p&gt;对于通常的AutoEncoder，它构造了映射：$f:X \to Z$ ，表示输入 $X$ 经过网络 $f$ 压缩为 $Z$ 。但是对于一张普通的1080p RGB 图片来讲，所有可能性高达$1920\times1080\times3\times2^8$。传统网络擅长构建一对一映射，在这里就会“水土不服”。那么，有什么办法解决这个问题吗？&lt;/p&gt;
+&lt;p&gt;VAE选择了对隐空间进行建模，假设后验 $p(z|x)$ 服从高斯分布。&lt;/p&gt;
+&lt;p&gt;但是这带来了问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;边际似然难以处理&lt;/strong&gt;：&lt;br&gt;
+边际似然$p_{\boldsymbol{\theta}}(\mathbf{x}) = \int p_{\boldsymbol{\theta}}(\mathbf{z})p_{\boldsymbol{\theta}}(\mathbf{x}|\mathbf{z})d\mathbf{z}$的积分难以处理，因此我们无法评估或区分边际似然。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;真实后验密度难以处理&lt;/strong&gt;：&lt;br&gt;
+真实后验密度$$p_{\boldsymbol{\theta}}(\mathbf{z}|\mathbf{x}) = \frac{p_{\boldsymbol{\theta}}(\mathbf{x}|\mathbf{z})p_{\boldsymbol{\theta}}(\mathbf{z})}{p_{\boldsymbol{\theta}}(\mathbf{x})}$$难以处理，因此不能使用期望最大算法。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;VAE 通过编码器神经网络实现数据压缩：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;输入映射&lt;/strong&gt;&lt;br&gt;
+输入数据 $\mathbf{x}$如图像）通过编码器网络 $q_\phi(\mathbf{z}|\mathbf{x})$ 映射到&lt;strong&gt;隐变量的概率分布参数&lt;/strong&gt;（通常是高斯分布）：&lt;/p&gt;
+&lt;p&gt;$$
+\mu_\phi(\mathbf{x}), \sigma_\phi(\mathbf{x}) = \text{Encoder}_\phi(\mathbf{x})
+$$&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$\mu$：隐变量分布的均值向量&lt;/li&gt;
+&lt;li&gt;$\sigma$：标准差向量（决定不确定性）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;概率采样（重参数化技巧）&lt;/strong&gt;&lt;br&gt;
+为避免随机采样不可导，使用重参数化技巧生成隐变量 $\mathbf{z}$：
+$$
+\mathbf{z} = \mu_\phi(\mathbf{x}) + \sigma_\phi(\mathbf{x}) \odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, \mathbf{I})
+$$&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;$\odot$：逐元素乘法&lt;/li&gt;
+&lt;li&gt;$\epsilon$：从标准正态分布采样的噪声
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;意义&lt;/strong&gt;：将随机性分离为可导运算，使梯度可回传。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;3. VAE 的数学推导&lt;/h2&gt;
+&lt;p&gt;VAE 将输入数据压缩到隐空间并建模高质量隐空间的过程，本质是通过&lt;strong&gt;概率编码器 + 隐变量分布约束 + 生成式重构&lt;/strong&gt;的联合优化实现的。&lt;/p&gt;
+&lt;h4&gt;&lt;strong&gt;隐空间的结构化：KL散度的正则化作用&lt;/strong&gt;&lt;/h4&gt;
+&lt;p&gt;VAE 的核心创新是通过 &lt;strong&gt;KL 散度约束&lt;/strong&gt;使隐空间具备良好结构：&lt;/p&gt;
+&lt;p&gt;在 VAE 中，我们的目标是最大化边际似然 $\log p_\theta(\mathbf{x})$，但由于
+$p_\theta(\mathbf{x}) = \int p_\theta(\mathbf{x},\mathbf{z}),d\mathbf{z}$ 难以直接计算，
+我们引入近似后验 $q_\phi(\mathbf{z}|\mathbf{x})$ 并利用 Jensen 不等式得到证据下界（ELBO）：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;从对数似然到 ELBO&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;$$
+\log p_\theta(\mathbf{x})
+= \log \int p_\theta(\mathbf{x},\mathbf{z}),d\mathbf{z}
+= \log \int q_\phi(\mathbf{z}|\mathbf{x})\frac{p_\theta(\mathbf{x},\mathbf{z})}{q_\phi(\mathbf{z}|\mathbf{x})},d\mathbf{z}
+$$&lt;/p&gt;
+&lt;p&gt;应用 Jensen 不等式（$\log\mathbb{E}[u]\ge \mathbb{E}[\log u]$）得到：&lt;/p&gt;
+&lt;p&gt;$$
+\log p_\theta(\mathbf{x})
+\ge \mathbb{E}&lt;em&gt;{q&lt;/em&gt;\phi(\mathbf{z}|\mathbf{x})}\Bigl[\log p_\theta(\mathbf{x},\mathbf{z}) - \log q_\phi(\mathbf{z}|\mathbf{x})\Bigr]
+\equiv \mathrm{ELBO}(\mathbf{x})
+$$&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;ELBO 分解&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;$$
+\mathrm{ELBO}(\mathbf{x})
+= \mathbb{E}&lt;em&gt;{q&lt;/em&gt;\phi(\mathbf{z}|\mathbf{x})}[\log p_\theta(\mathbf{x}|\mathbf{z})] - D_{\mathrm{KL}}\bigl(q_\phi(\mathbf{z}|\mathbf{x})\parallel p(\mathbf{z})\bigr)
+$$&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一项：重构对数似然，衡量 $\mathbf{z}$ 重建 $\mathbf{x}$ 的能力。&lt;/li&gt;
+&lt;li&gt;第二项：KL 散度，约束后验靠近先验 $p(\mathbf{z})$（通常为 $\mathcal{N}(0,I)$）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;重参数化技巧&lt;/strong&gt;&lt;br&gt;
+对于高斯后验 $q_\phi(\mathbf{z}|\mathbf{x})=\mathcal{N}(\mathbf{z};\mu_\phi(\mathbf{x}),\sigma^2_\phi(\mathbf{x}))$，令&lt;/p&gt;
+&lt;p&gt;$$
+\mathbf{z} = \mu_\phi(\mathbf{x}) + \sigma_\phi(\mathbf{x}) \odot \boldsymbol\epsilon,\quad\boldsymbol\epsilon\sim\mathcal{N}(0,I)
+$$&lt;/p&gt;
+&lt;p&gt;将随机性隔离到 $\boldsymbol\epsilon$，保证对 $(\mu,\sigma)$ 可导，从而可做反向传播。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;KL 散度的封闭解&lt;/strong&gt;&lt;br&gt;
+对两个 $d$ 维正态分布：&lt;/p&gt;
+&lt;p&gt;$$
+D_{\mathrm{KL}}\bigl(\mathcal{N}(\mu,\sigma^2)|\mathcal{N}(0,1)\bigr)= \frac{1}{2}\sum_{i=1}^d\bigl(\mu_i^2 +\sigma_i^2 - \log\sigma_i^2 - 1\bigr)
+$$&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;最终优化目标&lt;/strong&gt;&lt;br&gt;
+最小化负 ELBO：
+$$
+\mathcal{L}&lt;em&gt;{\mathrm{VAE}}(\mathbf{x})= -\mathbb{E}&lt;/em&gt;{q_\phi(\mathbf{z}|\mathbf{x})}[\log p_\theta(\mathbf{x}|\mathbf{z})]+ D_{\mathrm{KL}}\bigl(q_\phi(\mathbf{z}|\mathbf{x})\parallel p(\mathbf{z})\bigr)
+$$&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h4&gt;&lt;strong&gt;解码器：从隐空间重建数据&lt;/strong&gt;&lt;/h4&gt;
+&lt;p&gt;解码器 $p_\theta(\mathbf{x}|\mathbf{z}) $ 将隐变$(\mathbf{z}$ 映射回数据空间：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;生成过程&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;$$
+\hat{\mathbf{x}} = \text{Decoder}_\theta(\mathbf{z})
+$$&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;目标：最小化重建损失（如 MSE 或交叉熵）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;重建损失的双重角色&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;迫使 $\mathbf{z}$ 保留足够信息以精确重建输入。&lt;/li&gt;
+&lt;li&gt;与 KL 散度博弈：重构损失希望 $\mathbf{z}$ 包含更多信息，而 KL 散度希望 $\mathbf{z}$ 更接近简单先验分布。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;4、隐空间“足够好”的关键设计&lt;/h2&gt;
+&lt;h4&gt;1. &lt;strong&gt;连续性（Continuity）&lt;/strong&gt;&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;机制&lt;/strong&gt;：KL 散度强制隐变量分布覆盖整个标准正态空间，而非孤立点簇。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;效果&lt;/strong&gt;：隐空间中相邻点解码后语义相似（如人脸隐空间中微笑程度连续变化）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;2. &lt;strong&gt;解耦性（Disentanglement）&lt;/strong&gt;&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;机制&lt;/strong&gt;：KL 散度隐式鼓励隐变量维度独立。显式方法如 $\beta$-VAE 进一步强化：
+$$
+\mathcal{L}&lt;em&gt;{\beta\text{-VAE}} = \mathbb{E}[\log p(\mathbf{x}|\mathbf{z})] - \beta D&lt;/em&gt;{\text{KL}}(q(\mathbf{z}|\mathbf{x}) \parallel p(\mathbf{z}))
+$$&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;效果&lt;/strong&gt;：单个隐变量维度控制单一语义特征（如发型、光照）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;3. &lt;strong&gt;鲁棒性（Robustness）&lt;/strong&gt;&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;机制&lt;/strong&gt;：概率采样使模型对输入噪声不敏感（方差 $\sigma$ 建模不确定性）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;效果&lt;/strong&gt;：对遮挡或噪声数据仍能生成合理隐变量。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;VAE 通过&lt;strong&gt;概率编码器建模隐变量分布&lt;/strong&gt;，并利用 &lt;strong&gt;KL 散度约束&lt;/strong&gt;将隐空间结构化，使其具备连续性、解耦性和鲁棒性。解码器的重建需求则确保隐变量保留足够信息。这种概率框架下的生成-推断平衡，使 VAE 的隐空间不仅是高效的数据压缩表示，更是可解释、可操控的语义空间，为自监督学习和生成任务奠定基础。&lt;/p&gt;
+&lt;h2&gt;5. 一些参考资料&lt;/h2&gt;
+&lt;p&gt;&lt;a href=&quot;https://zhuanlan.zhihu.com/p/348498294&quot;&gt;机器学习方法—优雅的模型（一）：变分自编码器（VAE）&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://www.bilibili.com/video/BV1aE411o7qd/?p=170&quot;&gt;机器学习-白板推导系列-变分自编码器&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://zhuanlan.zhihu.com/p/389295612&quot;&gt;如何避免VAE后验坍塌?&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://spaces.ac.cn/archives/5253&quot;&gt;科学空间-苏剑林-变分自编码器（一）：原来是这么一回事&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://spaces.ac.cn/archives/5343&quot;&gt;科学空间-苏剑林-变分自编码器（二）：从贝叶斯观点出发&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://spaces.ac.cn/archives/5383&quot;&gt;科学空间-苏剑林-变分自编码器（三）：这样做为什么能成？&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://spaces.ac.cn/archives/5887&quot;&gt;科学空间-苏剑林-变分自编码器（四）：一步到位的聚类方案&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://spaces.ac.cn/archives/7381&quot;&gt;科学空间-苏剑林-变分自编码器（五）：VAE + BN = 更好的VAE&lt;/a&gt;&lt;/p&gt;</content:encoded><h:img src="undefined"/><enclosure url="undefined"/></item></channel></rss>

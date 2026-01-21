@@ -1,0 +1,45 @@
+{
+    "friends": [
+    {
+        "id_name": "cf-links",
+        "desc": "Common links included in circle friends",
+        "link_list": [
+            {
+                "name": "Taboo's Blog",
+                "intro": "Pd.ch的朋友，嵌入式开发者，喜欢研究一些稀奇古怪的小东西。",
+                "link": "http://taboo-sdh.top",
+                "avatar": "http://taboo-sdh.top/wp-content/uploads/2025/04/1744538837-liziqiu.jpg"
+            },
+            {
+                "name": "dokee's site",
+                "intro": "Stay hungry, stay foolish",
+                "link": "https://dokee.moe/",
+                "avatar": "https://dokee.moe/favicon/favicon.ico"
+            }
+        ]
+    },
+    {
+        "id_name": "inactive-links",
+        "desc": "Inactive or rule-breaking friends",
+        "link_list": []
+    },
+    {
+      "id_name": "special-links",
+      "desc": "Other special links",
+      "link_list": [
+        {
+          "name": "虫洞",
+          "intro": "随机前往十年之约的成员博客",
+          "link": "https://www.foreverblog.cn/go.html",
+          "avatar": "/images/wormhole.png"
+        },
+        {
+          "name": "开往",
+          "intro": "随机前往开往的成员博客",
+          "link": "https://www.travellings.cn/go.html",
+          "avatar": "https://www.travellings.cn/assets/travelling.png"
+        }
+      ]
+    }
+    ]
+}
