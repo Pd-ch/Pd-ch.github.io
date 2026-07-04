@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Wallpaper Engine on Pdch's log</title><link>https://pd-ch.github.io/tags/wallpaper-engine/</link><description>Recent content from Pdch's log</description><generator>Hugo</generator><language>zh-CN</language><managingEditor>pd.ch@qq.com (Pdch)</managingEditor><webMaster>pd.ch@qq.com (Pdch)</webMaster><copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright><lastBuildDate>Sat, 04 Jul 2026 15:20:53 +0800</lastBuildDate><atom:link href="https://pd-ch.github.io/tags/wallpaper-engine/index.xml" rel="self" type="application/rss+xml"/><item><title>在Niri+DMS环境上使用wallpaper engine壁纸</title><link>https://pd-ch.github.io/post/usig-wallpaper-engine-on-niri+dms/</link><pubDate>Sat, 04 Jul 2026 15:20:53 +0800</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/usig-wallpaper-engine-on-niri+dms/</guid><description>
+<![CDATA[<h1>在Niri+DMS环境上使用wallpaper engine壁纸</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <h2 id="先决条件">
+<a class="header-anchor" href="#%e5%85%88%e5%86%b3%e6%9d%a1%e4%bb%b6"></a>
+先决条件
+</h2><p>首先需要配置好如下内容。</p>
+<h3 id="niridms环境">
+<a class="header-anchor" href="#niridms%e7%8e%af%e5%a2%83"></a>
+Niri+DMS环境
+</h3><p>这个在<a href="https://github.com/AvengeMedia/DankMaterialShell#installation">DankMaterialShell</a>的readme中一行命令就可以安装了。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">curl -fsSL https://install.danklinux.com <span class="p">|</span> sh
+</span></span></code></pre></div><h3 id="wallpaper-engine">
+<a class="header-anchor" href="#wallpaper-engine"></a>
+wallpaper engine
+</h3><p>老生常谈的壁纸软件，在steam上下载。</p>
+<h3 id="linux-wallpaper-engine">
+<a class="header-anchor" href="#linux-wallpaper-engine"></a>
+linux wallpaper engine
+</h3><p>我们只是使用wallpaper engine来搜索、下载、管理壁纸。要在Linux上使用则需要根据readme安装<a href="https://github.com/Almamu/linux-wallpaperengine">linux-wallpaperengine</a>。编译安装完成后需要在PATH中，例如如果在zshrc中添加路径则只会在zsh会话中生效，参考此<a href="https://github.com/sgtaziz/dms-wallpaperengine/issues/19#issuecomment-4187194612">issue</a>。</p>
+        
+        <hr><p>本文2026-07-04首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2026-07-04</p>]]></description></item></channel></rss>

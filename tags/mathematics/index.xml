@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Mathematics on Pdch's log</title><link>https://pd-ch.github.io/tags/mathematics/</link><description>Recent content from Pdch's log</description><generator>Hugo</generator><language>zh-CN</language><managingEditor>pd.ch@qq.com (Pdch)</managingEditor><webMaster>pd.ch@qq.com (Pdch)</webMaster><copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright><lastBuildDate>Sun, 05 Oct 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://pd-ch.github.io/tags/mathematics/index.xml" rel="self" type="application/rss+xml"/><item><title>深度学习中的矩阵求导基础</title><link>https://pd-ch.github.io/post/the-basics-of-matrix-differentiation-in-deep-learning/</link><pubDate>Mon, 14 Jul 2025 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/the-basics-of-matrix-differentiation-in-deep-learning/</guid><description>
+<![CDATA[<h1>深度学习中的矩阵求导基础</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <blockquote>
+<p><strong>⚠️ 注意</strong></p>
+<p>笔者假定读者已经具备一定的线性代数和微积分基础，熟悉矩阵运算和基本的求导规则。</p>
+</blockquote>
+<h1 id="深度学习中的矩阵求导基础">
+<a class="header-anchor" href="#%e6%b7%b1%e5%ba%a6%e5%ad%a6%e4%b9%a0%e4%b8%ad%e7%9a%84%e7%9f%a9%e9%98%b5%e6%b1%82%e5%af%bc%e5%9f%ba%e7%a1%80"></a>
+深度学习中的矩阵求导基础
+</h1><h2 id="矩阵求导的布局">
+<a class="header-anchor" href="#%e7%9f%a9%e9%98%b5%e6%b1%82%e5%af%bc%e7%9a%84%e5%b8%83%e5%b1%80"></a>
+矩阵求导的布局
+</h2><p>在深度学习中，矩阵求导是一个重要的概念。我们通常使用两种布局来表示矩阵求导：分母布局（Denominator Layout）和分子布局（Numerator Layout）。</p>
+        
+        <hr><p>本文2025-07-14首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2025-10-05</p>]]></description></item><item><title>深度学习中的数学</title><link>https://pd-ch.github.io/post/mathematics-behind-deep-learning/</link><pubDate>Mon, 14 Jul 2025 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/mathematics-behind-deep-learning/</guid><description>
+<![CDATA[<h1>深度学习中的数学</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <blockquote>
+<p><strong>📝 提示</strong></p>
+<p>本文灵感来自BiliBili up主<a href="https://space.bilibili.com/1706874133">ReadPaper论文阅读</a>的系列视频<a href="https://space.bilibili.com/1706874133/lists?sid=1933483">《深度学习中的数学》</a>。</p>
+<p>感谢齐宪标老师的精彩讲解和分享。</p>
+</blockquote>
+<p>本人在研读论文时时常感觉力有不逮，感慨基础不牢地动山摇。深度学习的数学基础是一个重要的方面，本文将介绍一些深度学习中常用的数学概念和方法。</p>
+        
+        <hr><p>本文2025-07-14首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2025-07-18</p>]]></description></item></channel></rss>

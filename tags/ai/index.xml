@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>AI on Pdch's log</title><link>https://pd-ch.github.io/tags/ai/</link><description>Recent content from Pdch's log</description><generator>Hugo</generator><language>zh-CN</language><managingEditor>pd.ch@qq.com (Pdch)</managingEditor><webMaster>pd.ch@qq.com (Pdch)</webMaster><copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright><lastBuildDate>Fri, 11 Jul 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://pd-ch.github.io/tags/ai/index.xml" rel="self" type="application/rss+xml"/><item><title>人工智能基础</title><link>https://pd-ch.github.io/post/the-way-to-artificial-intelligence/</link><pubDate>Sun, 09 Mar 2025 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/the-way-to-artificial-intelligence/</guid><description>
+<![CDATA[<h1>人工智能基础</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <blockquote>
+<h2 id="基础技术栈">
+<a class="header-anchor" href="#%e5%9f%ba%e7%a1%80%e6%8a%80%e6%9c%af%e6%a0%88"></a>
+基础技术栈
+</h2><ul>
+<li><strong>系统</strong>：Debian（Gnome）</li>
+<li><strong>环境管理</strong>：venv，pip</li>
+<li><strong>编程语言</strong>：Python</li>
+<li><strong>AI 框架</strong>：Pytorch</li>
+<li><strong>通用计算</strong>：Jax</li>
+<li><strong>内容管理工具</strong>：Git</li>
+<li><strong>集成开发环境</strong>：VScode（本地环境）、Jupyterlab（远程环境）</li>
+</ul>
+</blockquote>
+<blockquote>
+<h2 id="进阶技术栈">
+<a class="header-anchor" href="#%e8%bf%9b%e9%98%b6%e6%8a%80%e6%9c%af%e6%a0%88"></a>
+进阶技术栈
+</h2><ul>
+<li><strong>编程语言</strong>：C++（g++、cling，标准=23）</li>
+<li><strong>AI 框架</strong>：Pytorch（AMP，DDP并发）</li>
+<li><strong>环境管理</strong>：Podman（Devcontainer安装Podman-Docker软件包）</li>
+<li><strong>大数据</strong>：duckdb（替代pandas）</li>
+<li><strong>构建工具</strong>：xmake</li>
+</ul>
+</blockquote>
+<blockquote>
+<h2 id="自选方向技术栈">
+<a class="header-anchor" href="#%e8%87%aa%e9%80%89%e6%96%b9%e5%90%91%e6%8a%80%e6%9c%af%e6%a0%88"></a>
+自选方向技术栈
+</h2><ul>
+<li><strong>原型计算</strong>： MATLAB</li>
+<li><strong>云计算</strong>：K8s（rancher）、KVM、SDS（ceph）、SDN</li>
+<li><strong>边缘智能</strong>：TensorRT、onnx</li>
+<li><strong>高性能AI</strong>：flax、optax、orbax</li>
+<li><strong>加速器</strong>：FPGA（xilinx）、vitis、PCIe</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>注：</strong></p>
+        
+        <hr><p>本文2025-03-09首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2025-07-11</p>]]></description></item><item><title>变分自编码器</title><link>https://pd-ch.github.io/post/variational-autoencoder/</link><pubDate>Fri, 28 Mar 2025 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/variational-autoencoder/</guid><description>
+<![CDATA[<h1>变分自编码器</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <p>论文链接：<a href="https://papers.cool/arxiv/1312.6114">🔗</a></p>
+<p>由于我个人是做自监督相关的，故本文仅介绍自监督(self-supervised learning,SSL)方面VAE提供了什么。
+<del>其实在自监督中我们仅仅用到了VAE，没有用到decoder</del></p>
+        
+        <hr><p>本文2025-03-28首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2025-06-28</p>]]></description></item></channel></rss>

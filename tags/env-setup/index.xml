@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Env Setup on Pdch's log</title><link>https://pd-ch.github.io/tags/env-setup/</link><description>Recent content from Pdch's log</description><generator>Hugo</generator><language>zh-CN</language><managingEditor>pd.ch@qq.com (Pdch)</managingEditor><webMaster>pd.ch@qq.com (Pdch)</webMaster><copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright><lastBuildDate>Wed, 01 Jul 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://pd-ch.github.io/tags/env-setup/index.xml" rel="self" type="application/rss+xml"/><item><title>Linux Pytorch深度学习环境搭建速通</title><link>https://pd-ch.github.io/post/my-environment-setup/</link><pubDate>Sun, 29 Sep 2024 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/my-environment-setup/</guid><description>
+<![CDATA[<h1>Linux Pytorch深度学习环境搭建速通</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <h2 id="step-0-系统启动盘制作">
+<a class="header-anchor" href="#step-0-%e7%b3%bb%e7%bb%9f%e5%90%af%e5%8a%a8%e7%9b%98%e5%88%b6%e4%bd%9c"></a>
+Step 0. 系统启动盘制作
+</h2><p>简单来说，Ventoy是一个制作可启动U盘的开源工具。有了Ventoy你就无需反复地格式化U盘，你只需要把 ISO/WIM/IMG/VHD(x)/EFI 等类型的文件直接拷贝到U盘里面就可以启动了，无需其他操作。你可以一次性拷贝很多个不同类型的镜像文件，Ventoy 会在启动时显示一个菜单来供你进行选择。
+下载地址:<a href="https://www.ventoy.net/cn/download.html">https://www.ventoy.net/cn/download.html</a>
+安装到U盘以后，只需要将iso镜像复制到U盘中即可。个人建议前往镜像站下载操作系统的iso镜像。</p>
+        
+        <hr><p>本文2024-09-29首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2026-07-01</p>]]></description></item><item><title>Intel A770 GPU深度学习环境搭建（Linux）</title><link>https://pd-ch.github.io/post/a770-deeplearning-env-setup/</link><pubDate>Fri, 28 Jun 2024 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/a770-deeplearning-env-setup/</guid><description>
+<![CDATA[<h1>Intel A770 GPU深度学习环境搭建（Linux）</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <blockquote>
+<p><strong>📝 提示</strong></p>
+<p>Pytorch的文档已经添加xpu(Intel GPU)入门<a href="https://docs.pytorch.org/docs/stable/notes/get_start_xpu.html">教程</a>
+我在这里会介绍安装过程中的一些坑和注意事项。</p>
+</blockquote>
+<blockquote>
+<p><strong>⚠️ 注意</strong></p>
+        
+        <hr><p>本文2024-06-28首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2025-07-28</p>]]></description></item></channel></rss>

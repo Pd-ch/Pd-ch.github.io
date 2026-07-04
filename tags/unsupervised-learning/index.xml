@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Unsupervised Learning on Pdch's log</title><link>https://pd-ch.github.io/tags/unsupervised-learning/</link><description>Recent content from Pdch's log</description><generator>Hugo</generator><language>zh-CN</language><managingEditor>pd.ch@qq.com (Pdch)</managingEditor><webMaster>pd.ch@qq.com (Pdch)</webMaster><copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright><lastBuildDate>Sat, 28 Jun 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://pd-ch.github.io/tags/unsupervised-learning/index.xml" rel="self" type="application/rss+xml"/><item><title>变分自编码器</title><link>https://pd-ch.github.io/post/variational-autoencoder/</link><pubDate>Fri, 28 Mar 2025 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/variational-autoencoder/</guid><description>
+<![CDATA[<h1>变分自编码器</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <p>论文链接：<a href="https://papers.cool/arxiv/1312.6114">🔗</a></p>
+<p>由于我个人是做自监督相关的，故本文仅介绍自监督(self-supervised learning,SSL)方面VAE提供了什么。
+<del>其实在自监督中我们仅仅用到了VAE，没有用到decoder</del></p>
+        
+        <hr><p>本文2025-03-28首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2025-06-28</p>]]></description></item></channel></rss>

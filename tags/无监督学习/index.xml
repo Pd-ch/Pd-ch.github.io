@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>无监督学习 on Pdch's log</title><link>https://pd-ch.github.io/tags/%E6%97%A0%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/</link><description>Recent content from Pdch's log</description><generator>Hugo</generator><language>zh-CN</language><managingEditor>pd.ch@qq.com (Pdch)</managingEditor><webMaster>pd.ch@qq.com (Pdch)</webMaster><copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright><lastBuildDate>Wed, 26 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://pd-ch.github.io/tags/%E6%97%A0%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/index.xml" rel="self" type="application/rss+xml"/><item><title>LZN的无监督方法介绍</title><link>https://pd-ch.github.io/post/latent-zoning-network-interpretation/</link><pubDate>Thu, 17 Oct 2024 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/latent-zoning-network-interpretation/</guid><description>
+<![CDATA[<h1>LZN的无监督方法介绍</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <h2 id="写在前面">
+<a class="header-anchor" href="#%e5%86%99%e5%9c%a8%e5%89%8d%e9%9d%a2"></a>
+写在前面
+</h2><p>Latent Zoning Network: A Unified Principle for Generative Modeling, Representation Learning, and Classification 是一篇由 Microsoft 发表在 NeurIPS 2025 的论文，通过“共享高斯潜在空间 + 编码器/解码器对”将三类任务统一为同一框架下的不同“翻译”操作，从而简化流程、促进任务间协同。</p>
+        
+        <hr><p>本文2024-10-17首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2025-11-26</p>]]></description></item></channel></rss>

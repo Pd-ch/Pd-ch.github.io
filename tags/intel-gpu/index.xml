@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Intel GPU on Pdch's log</title><link>https://pd-ch.github.io/tags/intel-gpu/</link><description>Recent content from Pdch's log</description><generator>Hugo</generator><language>zh-CN</language><managingEditor>pd.ch@qq.com (Pdch)</managingEditor><webMaster>pd.ch@qq.com (Pdch)</webMaster><copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright><lastBuildDate>Mon, 28 Jul 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://pd-ch.github.io/tags/intel-gpu/index.xml" rel="self" type="application/rss+xml"/><item><title>Intel A770 GPU深度学习环境搭建（Linux）</title><link>https://pd-ch.github.io/post/a770-deeplearning-env-setup/</link><pubDate>Fri, 28 Jun 2024 00:00:00 +0000</pubDate><author>pd.ch@qq.com (Pdch)</author><guid>https://pd-ch.github.io/post/a770-deeplearning-env-setup/</guid><description>
+<![CDATA[<h1>Intel A770 GPU深度学习环境搭建（Linux）</h1><p>作者：Pdch（pd.ch@qq.com）</p>
+        
+          <blockquote>
+<p><strong>📝 提示</strong></p>
+<p>Pytorch的文档已经添加xpu(Intel GPU)入门<a href="https://docs.pytorch.org/docs/stable/notes/get_start_xpu.html">教程</a>
+我在这里会介绍安装过程中的一些坑和注意事项。</p>
+</blockquote>
+<blockquote>
+<p><strong>⚠️ 注意</strong></p>
+        
+        <hr><p>本文2024-06-28首发于<a href='https://pd-ch.github.io/'>Pdch's log</a>，最后修改于2025-07-28</p>]]></description></item></channel></rss>
